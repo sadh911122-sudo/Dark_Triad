@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>리더십 다크 트라이어드 진단</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+    }
+    .gradient-bg {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .glass-effect {
+      backdrop-filter: blur(10px);
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .progress-bar {
+      transition: width 0.3s ease;
+    }
+    .question-card {
+      transform: translateY(20px);
+      opacity: 0;
+      animation: slideIn 0.5s ease forwards;
+    }
+    @keyframes slideIn {
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+    .loading-spinner {
+      border: 3px solid #f3f3f3;
+      border-radius: 50%;
+      border-top: 3px solid #3498db;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .likert-scale {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .likert-option {
+      flex: 1;
+      text-align: center;
+      padding: 0.75rem 0.25rem;
+      border: 2px solid #e5e7eb;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: white;
+    }
+    .likert-option:hover {
+      border-color: #3b82f6;
+      background: #eff6ff;
+    }
+    .likert-option.selected {
+      border-color: #3b82f6;
+      background: #3b82f6;
+      color: white;
+    }
+    .alert-box {
+      animation: slideDown 0.3s ease;
+    }
+    @keyframes slideDown {
+      from {
+        transform: translateY(-20px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+  </style>
+</head>
+<body class="gradient-bg min-h-screen">
+  
+  <div class="container mx-auto px-4 py-8">
+    
+    <!-- 참여코드 입력 섹션 -->
+    <div id="codeSection" class="glass-effect rounded-lg p-8 max-w-md mx-auto">
+      <div class="text-center mb-6">
+        <i class="fas fa-key text-4xl text-blue-600 mb-4"></i>
+        <h1 class="text-2xl font-bold text-gray-800 mb-2">리더십 진단 시스템</h1>
+        <p class="text-gray-600">참여코드를 입력해주세요</p>
+      </div>
+      
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">참여코드</label>
+          <input type="text" id="participantCode" 
+                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-center text-lg font-mono"
+                 placeholder="LDT-XXXXXX"
+                 maxlength="10">
+        </div>
+        
+        <button onclick="validateCode()" 
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200">
+          <i class="fas fa-arrow-right mr-2"></i>진단 시작
+        </button>
+      </div>
+      
+      <div id="codeError" class="hidden mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+        <i class="fas fa-exclamation-triangle mr-2"></i>
+        유효하지 않은 참여코드입니다.
+      </div>
+    </div>
+
+    <!-- 메인 진단 섹션 -->
+    <div id="mainSection" class="hidden">
+      
+      <!-- 헤더 -->
+      <div class="glass-effect rounded-lg p-6 mb-8">
+        <div class="flex justify-between items-center">
+          <div>
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">
+              <i class="fas fa-chart-line mr-3"></i>리더십 성향 진단
+            </h1>
+            <p class="text-gray-600">정직하고 솔직하게 응답해주세요. 소요시간: 약 10분</p>
+          </div>
+          <div class="text-right">
+            <div class="text-sm text-gray-600">참여자</div>
+            <div id="participantName" class="font-semibold text-gray-800"></div>
+          </div>
+        </div>
+        
+        <!-- 진행률 -->
+        <div class="mt-4">
+          <div class="flex justify-between text-sm text-gray-600 mb-2">
+            <span>진행률</span>
+            <span id="progressText">0/27</span>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-2">
+            <div id="progressBar" class="progress-bar bg-blue-600 h-2 rounded-full" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 문항 카드 -->
+      <div id="questionSection" class="glass-effect rounded-lg p-8 mb-8">
+        <div class="question-card">
+          <div class="mb-6">
+            <div class="flex items-center justify-between mb-4">
+              <span class="text-sm font-medium text-blue-600" id="questionNumber">문항 1</span>
+              <span class="text-xs text-gray-500" id="questionCategory"></span>
+            </div>
+            <h2 class="text-xl font-semibold text-gray-800 leading-relaxed" id="questionText">
+              문항이 로딩 중입니다...
+            </h2>
+          </div>
+          
+          <div class="space-y-4">
+            <div class="text-center text-sm text-gray-600 mb-4">
+              <span class="font-medium">전혀 그렇지 않다</span>
+              <span class="mx-8">←→</span>
+              <span class="font-medium">매우 그렇다</span>
+            </div>
+            
+            <div class="likert-scale" id="likertScale">
+              <div class="likert-option" onclick="selectAnswer(1)">
+                <div class="font-bold text-lg">1</div>
+                <div class="text-xs mt-1">전혀<br>아니다</div>
+              </div>
+              <div class="likert-option" onclick="selectAnswer(2)">
+                <div class="font-bold text-lg">2</div>
+                <div class="text-xs mt-1">아니다</div>
+              </div>
+              <div class="likert-option" onclick="selectAnswer(3)">
+                <div class="font-bold text-lg">3</div>
+                <div class="text-xs mt-1">보통</div>
+              </div>
+              <div class="likert-option" onclick="selectAnswer(4)">
+                <div class="font-bold text-lg">4</div>
+                <div class="text-xs mt-1">그렇다</div>
+              </div>
+              <div class="likert-option" onclick="selectAnswer(5)">
+                <div class="font-bold text-lg">5</div>
+                <div class="text-xs mt-1">매우<br>그렇다</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="flex justify-between mt-8">
+            <button id="prevButton" onclick="previousQuestion()" 
+                    class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 disabled:opacity-50" 
+                    disabled>
+              <i class="fas fa-arrow-left mr-2"></i>이전
+            </button>
+            
+            <button id="nextButton" onclick="nextQuestion()" 
+                    class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200 disabled:opacity-50" 
+                    disabled>
+              다음<i class="fas fa-arrow-right ml-2"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 결과 섹션 -->
+    <div id="resultSection" class="hidden">
+      <div class="glass-effect rounded-lg p-8 mb-8">
+        <div class="text-center mb-8">
+          <i class="fas fa-check-circle text-5xl text-green-500 mb-4"></i>
+          <h1 class="text-3xl font-bold text-gray-800 mb-2">진단 완료</h1>
+          <p class="text-gray-600">귀하의 리더십 성향 분석 결과입니다.</p>
+        </div>
+
+        <!-- 차트 섹션 -->
+        <div class="bg-white rounded-lg p-6 mb-8 shadow-lg">
+          <h3 class="text-xl font-semibold text-gray-800 mb-4 text-center">종합 점수</h3>
+          <div class="max-w-md mx-auto">
+            <canvas id="resultChart"></canvas>
+          </div>
+        </div>
+
+        <!-- 상세 결과 -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div id="narcissismResult" class="bg-white rounded-lg p-6 shadow-lg"></div>
+          <div id="machiavellianismResult" class="bg-white rounded-lg p-6 shadow-lg"></div>
+          <div id="psychopathyResult" class="bg-white rounded-lg p-6 shadow-lg"></div>
+        </div>
+
+        <!-- 종합 해석 -->
+        <div id="overallInterpretation" class="bg-white rounded-lg p-6 shadow-lg mb-8"></div>
+
+        <!-- 액션 버튼 -->
+        <div class="text-center space-x-4">
+          <button onclick="sendResultsByEmail()" 
+                  class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200">
+            <i class="fas fa-envelope mr-2"></i>결과 이메일로 받기
+          </button>
+          <button onclick="printResults()" 
+                  class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200">
+            <i class="fas fa-print mr-2"></i>결과 출력
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 로딩 모달 -->
+    <div id="loadingModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+      <div class="bg-white p-8 rounded-lg text-center">
+        <div class="loading-spinner mx-auto mb-4"></div>
+        <p class="text-gray-700">진단 결과를 처리하고 있습니다...</p>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // 전역 변수
+    let currentQuestionIndex = 0;
+    let answers = [];
+    let questions = [];
+    let participantInfo = null;
+    let currentParticipant = null;
+    
+    // 27개 진단 문항 (차원별로 구성, 실제 사용시 랜덤 섞임)
+    const baseQuestions = [
+      // 나르시시즘 (1-9번)
+      {
+        id: 1,
+        text: "나는 남들보다 뛰어난 리더십을 가지고 있다고 생각한다.",
+        dimension: "narcissism",
+        reverse: false
+      },
+      {
+        id: 2,
+        text: "나는 조직에서 특별한 대우를 받을 자격이 있다고 생각한다.",
+        dimension: "narcissism",
+        reverse: false
+      },
+      {
+        id: 3,
+        text: "나는 다른 사람들이 나의 성취를 부러워한다고 느낀다.",
+        dimension: "narcissism",
+        reverse: false
+      },
+      {
+        id: 4,
+        text: "나는 권위 있는 사람들과 어울리는 것을 좋아한다.",
+        dimension: "narcissism",
+        reverse: false
+      },
+      {
+        id: 5,
+        text: "나는 다른 사람들의 관심을 받는 것을 즐긴다.",
+        dimension: "narcissism",
+        reverse: false
+      },
+      {
+        id: 6,
+        text: "나는 내가 특별한 사람이라고 생각한다.",
+        dimension: "narcissism",
+        reverse: false
+      },
+      {
+        id: 7,
+        text: "나는 팀에서 가장 중요한 역할을 한다고 생각한다.",
+        dimension: "narcissism",
+        reverse: false
+      },
+      {
+        id: 8,
+        text: "나는 다른 사람들이 나를 존경해야 한다고 생각한다.",
+        dimension: "narcissism",
+        reverse: false
+      },
+      {
+        id: 9,
+        text: "나는 리더로서 탁월한 능력을 가지고 있다고 확신한다.",
+        dimension: "narcissism",
+        reverse: false
+      },
+
+      // 마키아벨리즘 (10-18번)
+      {
+        id: 10,
+        text: "목표 달성을 위해서는 어느 정도의 거짓말은 필요하다고 생각한다.",
+        dimension: "machiavellianism",
+        reverse: false
+      },
+      {
+        id: 11,
+        text: "나는 상황에 따라 내 말을 바꾸는 것이 효과적이라고 생각한다.",
+        dimension: "machiavellianism",
+        reverse: false
+      },
+      {
+        id: 12,
+        text: "나는 다른 사람들의 약점을 이용해서 내 목표를 달성할 수 있다.",
+        dimension: "machiavellianism",
+        reverse: false
+      },
+      {
+        id: 13,
+        text: "나는 경쟁에서 이기기 위해 수단과 방법을 가리지 않는다.",
+        dimension: "machiavellianism",
+        reverse: false
+      },
+      {
+        id: 14,
+        text: "나는 다른 사람들을 조종하는 것이 쉽다고 생각한다.",
+        dimension: "machiavellianism",
+        reverse: false
+      },
+      {
+        id: 15,
+        text: "나는 내게 유리한 정보만 선택적으로 공유한다.",
+        dimension: "machiavellianism",
+        reverse: false
+      },
+      {
+        id: 16,
+        text: "나는 상대방의 감정을 이용해서 내가 원하는 것을 얻을 수 있다.",
+        dimension: "machiavellianism",
+        reverse: false
+      },
+      {
+        id: 17,
+        text: "나는 때로는 아첨을 통해 사람들의 호감을 산다.",
+        dimension: "machiavellianism",
+        reverse: false
+      },
+      {
+        id: 18,
+        text: "나는 상황에 따라 다른 사람에게 책임을 전가할 수 있다.",
+        dimension: "machiavellianism",
+        reverse: false
+      },
+
+      // 사이코패시 (19-27번)
+      {
+        id: 19,
+        text: "나는 다른 사람의 감정에 별로 신경 쓰지 않는다.",
+        dimension: "psychopathy",
+        reverse: false
+      },
+      {
+        id: 20,
+        text: "나는 감정적으로 냉정함을 유지하는 편이다.",
+        dimension: "psychopathy",
+        reverse: false
+      },
+      {
+        id: 21,
+        text: "나는 위험한 상황을 즐기는 편이다.",
+        dimension: "psychopathy",
+        reverse: false
+      },
+      {
+        id: 22,
+        text: "나는 다른 사람이 고통받는 것을 보아도 별로 느끼는 것이 없다.",
+        dimension: "psychopathy",
+        reverse: false
+      },
+      {
+        id: 23,
+        text: "나는 충동적으로 행동하는 경우가 많다.",
+        dimension: "psychopathy",
+        reverse: false
+      },
+      {
+        id: 24,
+        text: "나는 다른 사람의 문제에 감정적으로 개입하지 않는다.",
+        dimension: "psychopathy",
+        reverse: false
+      },
+      {
+        id: 25,
+        text: "나는 규칙이나 제약을 무시하고 행동할 때가 있다.",
+        dimension: "psychopathy",
+        reverse: false
+      },
+      {
+        id: 26,
+        text: "나는 죄책감을 느끼는 경우가 거의 없다.",
+        dimension: "psychopathy",
+        reverse: false
+      },
+      {
+        id: 27,
+        text: "나는 다른 사람들보다 감정 기복이 적은 편이다.",
+        dimension: "psychopathy",
+        reverse: false
+      }
+    ];
+
+    // 페이지 초기화
+    document.addEventListener('DOMContentLoaded', function() {
+      // URL 파라미터에서 참여코드 확인
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get('code');
+      if (code) {
+        document.getElementById('participantCode').value = code;
+        validateCode();
+      }
+    });
+
+    // 참여코드 검증
+    function validateCode() {
+      const code = document.getElementById('participantCode').value.trim().toUpperCase();
+      const participants = JSON.parse(localStorage.getItem('participants') || '[]');
+      
+      // 참여자 찾기
+      const participant = participants.find(p => p.code === code && p.status === 'pending');
+      
+      if (participant) {
+        currentParticipant = participant;
+        document.getElementById('codeError').classList.add('hidden');
+        startDiagnosis();
+      } else {
+        document.getElementById('codeError').classList.remove('hidden');
+      }
+    }
+
+    // 진단 시작
+    function startDiagnosis() {
+      // 문항 섞기 (차원 숨김 처리)
+      questions = shuffleArray([...baseQuestions]);
+      answers = new Array(27).fill(null);
+      currentQuestionIndex = 0;
+      
+      // 섹션 전환
+      document.getElementById('codeSection').classList.add('hidden');
+      document.getElementById('mainSection').classList.remove('hidden');
+      
+      // 참여자 정보 표시
+      document.getElementById('participantName').textContent = currentParticipant.name;
+      
+      // 첫 번째 문항 표시
+      showQuestion();
+    }
+
+    // 배열 섞기 함수
+    function shuffleArray(array) {
+      const shuffled = [...array];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      return shuffled;
+    }
+
+    // 문항 표시
+    function showQuestion() {
+      const question = questions[currentQuestionIndex];
+      
+      document.getElementById('questionNumber').textContent = `문항 ${currentQuestionIndex + 1}`;
+      document.getElementById('questionText').textContent = question.text;
+      
+      // 진행률 업데이트
+      const progress = ((currentQuestionIndex + 1) / 27) * 100;
+      document.getElementById('progressBar').style.width = `${progress}%`;
+      document.getElementById('progressText').textContent = `${currentQuestionIndex + 1}/27`;
+      
+      // 기존 선택 복원
+      clearSelection();
+      if (answers[currentQuestionIndex] !== null) {
+        selectAnswer(answers[currentQuestionIndex], false);
+      }
+      
+      // 버튼 상태 업데이트
+      document.getElementById('prevButton').disabled = currentQuestionIndex === 0;
+      
+      const isLastQuestion = currentQuestionIndex === 26;
+      const nextButton = document.getElementById('nextButton');
+      nextButton.disabled = answers[currentQuestionIndex] === null;
+      nextButton.innerHTML = isLastQuestion ? 
+        '결과 보기<i class="fas fa-check ml-2"></i>' : 
+        '다음<i class="fas fa-arrow-right ml-2"></i>';
+    }
+
+    // 답변 선택
+    function selectAnswer(value, updateAnswer = true) {
+      // 기존 선택 제거
+      clearSelection();
+      
+      // 새 선택 적용
+      const options = document.querySelectorAll('.likert-option');
+      options[value - 1].classList.add('selected');
+      
+      if (updateAnswer) {
+        answers[currentQuestionIndex] = value;
+        document.getElementById('nextButton').disabled = false;
+      }
+    }
+
+    // 선택 지우기
+    function clearSelection() {
+      document.querySelectorAll('.likert-option').forEach(option => {
+        option.classList.remove('selected');
+      });
+    }
+
+    // 이전 문항
+    function previousQuestion() {
+      if (currentQuestionIndex > 0) {
+        currentQuestionIndex--;
+        showQuestion();
+      }
+    }
+
+    // 다음 문항 또는 결과 보기
+    function nextQuestion() {
+      if (currentQuestionIndex < 26) {
+        currentQuestionIndex++;
+        showQuestion();
+      } else {
+        showResults();
+      }
+    }
+
+    // 결과 표시
+    function showResults() {
+      document.getElementById('loadingModal').classList.remove('hidden');
+      
+      setTimeout(() => {
+        // 점수 계산
+        const scores = calculateScores();
+        
+        // 결과 섹션 표시
+        document.getElementById('mainSection').classList.add('hidden');
+        document.getElementById('resultSection').classList.remove('hidden');
+        document.getElementById('loadingModal').classList.add('hidden');
+        
+        // 결과 렌더링
+        renderResults(scores);
+        
+        // 참여자 상태 업데이트
+        updateParticipantStatus();
+        
+        // 결과 저장
+        saveResults(scores);
+      }, 2000);
+    }
+
+    // 점수 계산
+    function calculateScores() {
+      const scores = {
+        narcissism: 0,
+        machiavellianism: 0,
+        psychopathy: 0
+      };
+      
+      questions.forEach((question, index) => {
+        const answer = answers[index];
+        const score = question.reverse ? (6 - answer) : answer;
+        scores[question.dimension] += score;
+      });
+      
+      // 평균 계산 (각 차원당 9문항)
+      Object.keys(scores).forEach(dimension => {
+        scores[dimension] = (scores[dimension] / 9).toFixed(1);
+      });
+      
+      return scores;
+    }
+
+    // 결과 렌더링
+    function renderResults(scores) {
+      // 차트 생성
+      createChart(scores);
+      
+      // 각 차원별 결과 표시
+      renderDimensionResult('narcissism', scores.narcissism, 'red');
+      renderDimensionResult('machiavellianism', scores.machiavellianism, 'orange');
+      renderDimensionResult('psychopathy', scores.psychopathy, 'purple');
+      
+      // 종합 해석 표시
+      renderOverallInterpretation(scores);
+    }
+
+    // 차트 생성
+    function createChart(scores) {
+      const ctx = document.getElementById('resultChart').getContext('2d');
+      
+      new Chart(ctx, {
+        type: 'radar',
+        data: {
+          labels: ['나르시시즘', '마키아벨리즘', '사이코패시'],
+          datasets: [{
+            label: '점수',
+            data: [scores.narcissism, scores.machiavellianism, scores.psychopathy],
+            backgroundColor: 'rgba(59, 130, 246, 0.2)',
+            borderColor: 'rgba(59, 130, 246, 1)',
+            borderWidth: 2,
+            pointBackgroundColor: 'rgba(59, 130, 246, 1)',
+            pointBorderColor: '#fff',
+            pointHoverBackgroundColor: '#fff',
+            pointHoverBorderColor: 'rgba(59, 130, 246, 1)'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          scales: {
+            r: {
+              beginAtZero: true,
+              max: 5,
+              min: 1,
+              ticks: {
+                stepSize: 1
+              }
+            }
+          },
+          plugins: {
+            legend: {
+              display: false
+            }
+          }
+        }
+      });
+    }
+
+    // 차원별 결과 렌더링
+    function renderDimensionResult(dimension, score, color) {
+      const customFeedback = JSON.parse(localStorage.getItem('customFeedback') || '{}');
+      const dimensionFeedback = customFeedback[dimension] || getDefaultFeedback(dimension);
+      
+      const resultDiv = document.getElementById(`${dimension}Result`);
+      const level = getScoreLevel(score);
+      
+      resultDiv.innerHTML = `
+        <div class="text-center mb-4">
+          <h3 class="text-lg font-semibold text-${color}-600 mb-2">${dimensionFeedback.name || dimension}</h3>
+          <div class="text-2xl font-bold text-gray-800">${score}</div>
+          <div class="text-sm text-gray-600">${level}</div>
+        </div>
+        
+        <div class="space-y-4">
+          <div>
+            <h4 class="font-medium text-green-700 mb-2">강점 요소</h4>
+            <ul class="text-sm text-gray-600 space-y-1">
+              ${(dimensionFeedback.positive || []).map(item => `<li>• ${item}</li>`).join('')}
+            </ul>
+          </div>
+          
+          <div>
+            <h4 class="font-medium text-red-700 mb-2">주의사항</h4>
+            <ul class="text-sm text-gray-600 space-y-1">
+              ${(dimensionFeedback.risks || []).map(item => `<li>• ${item}</li>`).join('')}
+            </ul>
+          </div>
+          
+          <div>
+            <h4 class="font-medium text-blue-700 mb-2">개선 방향</h4>
+            <ul class="text-sm text-gray-600 space-y-1">
+              ${(dimensionFeedback.improvement || []).map(item => `<li>• ${item}</li>`).join('')}
+            </ul>
+          </div>
+        </div>
+      `;
+    }
+
+    // 점수 수준 판정
+    function getScoreLevel(score) {
+      if (score < 2.0) return '매우 낮음';
+      if (score < 3.0) return '낮음';
+      if (score < 4.0) return '보통';
+      return '높음';
+    }
+
+    // 기본 피드백 반환
+    function getDefaultFeedback(dimension) {
+      const defaults = {
+        narcissism: {
+          name: "나르시시즘",
+          positive: ["강한 자신감과 추진력", "도전적인 목표 설정", "카리스마 있는 리더십"],
+          risks: ["팀원의 의견 무시", "현실 인식 부족", "비판에 대한 과민반응"],
+          improvement: ["공감 능력 개발하기", "팀원의 피드백을 적극적으로 듣기", "겸손함 연습하기"]
+        },
+        machiavellianism: {
+          name: "마키아벨리즘",
+          positive: ["전략적 사고 능력", "협상력과 설득력", "현실적인 판단력"],
+          risks: ["팀원과의 신뢰 관계 손상", "단기적 성과에 치중", "윤리적 딜레마 발생"],
+          improvement: ["투명하고 정직한 커뮤니케이션", "윤리적 기준 설정하기", "장기적 관계 중시하기"]
+        },
+        psychopathy: {
+          name: "사이코패시",
+          positive: ["압박 상황에서의 냉정함", "빠른 의사결정 능력", "스트레스 저항력"],
+          risks: ["팀원과의 감정적 단절", "충동적인 의사결정", "윤리적 판단력 부족"],
+          improvement: ["공감 능력 개발하기", "팀원의 감정 상태 관찰하기", "의사결정 전 숙고하기"]
+        }
+      };
+      return defaults[dimension] || {};
+    }
+
+    // 종합 해석 렌더링
+    function renderOverallInterpretation(scores) {
+      const customFeedback = JSON.parse(localStorage.getItem('customFeedback') || '{}');
+      const leadership = customFeedback.leadership || {};
+      
+      const avgScore = ((parseFloat(scores.narcissism) + parseFloat(scores.machiavellianism) + parseFloat(scores.psychopathy)) / 3).toFixed(1);
+      
+      let interpretation;
+      if (avgScore < 2.0) {
+        interpretation = leadership.overall_very_low || "건강하고 균형잡힌 리더십 성향을 보입니다.";
+      } else if (avgScore < 3.0) {
+        interpretation = leadership.overall_low || "전반적으로 안정적인 리더십 성향입니다.";
+      } else if (avgScore < 4.0) {
+        interpretation = leadership.overall_moderate || "일부 영역에서 주의깊은 자기성찰이 필요합니다.";
+      } else {
+        interpretation = leadership.overall_high || "즉각적인 개선이 필요한 리더십 성향입니다.";
+      }
+      
+      document.getElementById('overallInterpretation').innerHTML = `
+        <h3 class="text-xl font-semibold text-gray-800 mb-4">종합 해석</h3>
+        <div class="bg-blue-50 rounded-lg p-4 mb-4">
+          <div class="text-center mb-2">
+            <span class="text-2xl font-bold text-blue-600">${avgScore}</span>
+            <span class="text-sm text-gray-600 ml-2">전체 평균</span>
+          </div>
+        </div>
+        <p class="text-gray-700 leading-relaxed">${interpretation}</p>
+        
+        <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="bg-gray-50 rounded-lg p-4">
+            <h4 class="font-semibold text-gray-800 mb-2">일일 실천사항</h4>
+            <div class="text-sm text-gray-600">
+              ${leadership.development_daily ? leadership.development_daily.split('\n').map(item => `<div>• ${item}</div>`).join('') : 
+                '<div>• 매일 팀원 한 명과 개인적 대화하기</div><div>• 의사결정 전 5분 숙고하기</div><div>• 하루 한 번 자기 성찰 시간 갖기</div>'}
+            </div>
+          </div>
+          
+          <div class="bg-gray-50 rounded-lg p-4">
+            <h4 class="font-semibold text-gray-800 mb-2">주간 목표</h4>
+            <div class="text-sm text-gray-600">
+              ${leadership.development_weekly ? leadership.development_weekly.split('\n').map(item => `<div>• ${item}</div>`).join('') : 
+                '<div>• 팀원들로부터 피드백 받기</div><div>• 리더십 관련 책 1권 읽기</div><div>• 멘토와 코칭 세션 진행하기</div>'}
+            </div>
+          </div>
+          
+          <div class="bg-gray-50 rounded-lg p-4">
+            <h4 class="font-semibold text-gray-800 mb-2">장기 발전 계획</h4>
+            <div class="text-sm text-gray-600">
+              ${leadership.development_longterm ? leadership.development_longterm.split('\n').map(item => `<div>• ${item}</div>`).join('') : 
+                '<div>• 360도 피드백 프로그램 참여</div><div>• 리더십 교육과정 수강</div><div>• 정기적 심리검사 및 성향 점검</div>'}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // 참여자 상태 업데이트
+    function updateParticipantStatus() {
+      const participants = JSON.parse(localStorage.getItem('participants') || '[]');
+      const index = participants.findIndex(p => p.code === currentParticipant.code);
+      
+      if (index !== -1) {
+        participants[index].status = 'completed';
+        participants[index].completedAt = new Date().toISOString();
+        localStorage.setItem('participants', JSON.stringify(participants));
+      }
+    }
+
+    // 결과 저장
+    function saveResults(scores) {
+      const results = JSON.parse(localStorage.getItem('diagnosisResults') || '[]');
+      
+      const result = {
+        id: Date.now(),
+        participantCode: currentParticipant.code,
+        participantName: currentParticipant.name,
+        participantEmail: currentParticipant.email,
+        scores: scores,
+        answers: answers,
+        questions: questions,
+        completedAt: new Date().toISOString()
+      };
+      
+      results.push(result);
+      localStorage.setItem('diagnosisResults', JSON.stringify(results));
+    }
+
+    // 이메일 발송
+    function sendResultsByEmail() {
+      const loadingModal = document.getElementById('loadingModal');
+      loadingModal.querySelector('p').textContent = '이메일을 발송하고 있습니다...';
+      loadingModal.classList.remove('hidden');
+      
+      // EmailJS 설정이 필요한 부분 (실제 구현시 설정 필요)
+      setTimeout(() => {
+        loadingModal.classList.add('hidden');
+        alert('이메일 발송이 완료되었습니다.\n(실제 구현시 EmailJS 설정이 필요합니다)');
+      }, 2000);
+    }
+
+    // 결과 출력
+    function printResults() {
+      window.print();
+    }
+
+    // 키보드 이벤트
+    document.addEventListener('keydown', function(e) {
+      if (document.getElementById('mainSection').classList.contains('hidden')) return;
+      
+      // 숫자 키로 답변 선택
+      if (e.key >= '1' && e.key <= '5') {
+        selectAnswer(parseInt(e.key));
+      }
+      
+      // 화살표 키로 이동
+      if (e.key === 'ArrowLeft' && !document.getElementById('prevButton').disabled) {
+        previousQuestion();
+      }
+      if (e.key === 'ArrowRight' && !document.getElementById('nextButton').disabled) {
+        nextQuestion();
+      }
+    });
+
+    // 참여코드 입력 시 엔터키 처리
+    document.getElementById('participantCode').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        validateCode();
+      }
+    });
+  </script>
+</body>
+</html>
