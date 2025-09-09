@@ -223,18 +223,20 @@
 
     // 페이지 초기화
     document.addEventListener('DOMContentLoaded', function() {
-      // 인증 확인
-      if (typeof window.AdminAuth !== 'undefined') {
-        currentAdmin = window.AdminAuth.checkAuth();
-      }
-      
-      updateDateTime();
-      setInterval(updateDateTime, 60000);
-      setupMobileMenu();
-      setupEventListeners();
-      loadFeedbackData();
-      loadModificationLogs();
-    });
+  // Auth 시스템 초기화 (인증 체크 + 환영 메시지 + 비활성화 타이머 시작)
+  if (!AdminAuth.init()) {
+    return; // 인증 실패 시 리다이렉트됨
+  }
+  
+  // 현재 관리자 정보 가져오기
+  const currentAdmin = AdminAuth.getCurrentAdmin();
+  
+  // 나머지 페이지별 초기화 코드...
+  updateDateTime();
+  setInterval(updateDateTime, 60000);
+  setupMobileMenu();
+  // 페이지별 고유 초기화 함수들...
+});
 
     // 모바일 메뉴 설정
     function setupMobileMenu() {
@@ -870,6 +872,7 @@
       background-color: #f8fafc;
     }
   </style>
+  <script src="auth.js"></script>
 </head>
 <body class="bg-gray-50">
   
