@@ -13,8 +13,23 @@
   <!-- 외부 라이브러리 로드 -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   
-  <!-- config.js를 마지막에 로드 -->
-  <script src="./config.js"></script>  <style>
+  <!-- config.js를 동기적으로 로드 -->
+  <script src="config.js"></script>
+  
+  <!-- config.js 로드 확인 스크립트 -->
+  <script>
+    console.log('즉시 실행 - GOOGLE_CONFIG:', typeof GOOGLE_CONFIG);
+    
+    // DOM 로드 후 다시 확인
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('DOM 로드 후 - GOOGLE_CONFIG:', typeof GOOGLE_CONFIG);
+      if (typeof GOOGLE_CONFIG !== 'undefined') {
+        console.log('GOOGLE_CONFIG 내용:', GOOGLE_CONFIG);
+      } else {
+        console.error('GOOGLE_CONFIG가 여전히 undefined입니다.');
+      }
+    });
+  </script>
     body {
       font-family: 'Noto Sans KR', sans-serif;
     }
