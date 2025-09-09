@@ -1,21 +1,8 @@
+// config.js - Google Sheets API 설정
 console.log('config.js 파일 실행 시작');
 
-// 기존 GOOGLE_CONFIG 선언 전에
-console.log('GOOGLE_CONFIG 선언 전');
-
-const GOOGLE_CONFIG = {
-  // 기존 설정...
-};
-
-console.log('GOOGLE_CONFIG 선언 완료:', GOOGLE_CONFIG);
-
-// 파일 끝에
-console.log('config.js 파일 실행 완료');
-
-// config.js - Google Sheets API 설정
-// 실제 사용시 YOUR_XXXXX 부분을 실제 값으로 교체하세요
-
-const GOOGLE_CONFIG = {
+// 전역 스코프에 GOOGLE_CONFIG 선언 (const 대신 window 객체 사용)
+window.GOOGLE_CONFIG = {
   // OAuth 클라이언트 ID
   CLIENT_ID: '697465063139-3kful1btdams4k3fle4cn7l5haje7dmf.apps.googleusercontent.com',
   
@@ -30,38 +17,14 @@ const GOOGLE_CONFIG = {
   GMAIL_DISCOVERY_DOC: 'https://gmail.googleapis.com/$discovery/rest?version=v1'
 };
 
-// Google API 로드 및 초기화
-let gapi_loaded = false;
-let auth_initialized = false;
+console.log('GOOGLE_CONFIG 선언 완료:', window.GOOGLE_CONFIG);
 
-async function initializeGoogleAPI() {
-  if (typeof gapi === 'undefined') {
-    // gapi 라이브러리 동적 로드
-    await loadScript('https://apis.google.com/js/api.js');
-  }
-  
-  return new Promise((resolve, reject) => {
-    gapi.load('client:auth2', async () => {
-      try {
-        await gapi.client.init({
-          clientId: GOOGLE_CONFIG.CLIENT_ID,
-          scope: GOOGLE_CONFIG.SCOPE,
-          discoveryDocs: [GOOGLE_CONFIG.DISCOVERY_DOC, GOOGLE_CONFIG.GMAIL_DISCOVERY_DOC]
-        });
-        
-        gapi_loaded = true;
-        auth_initialized = true;
-        resolve(true);
-      } catch (error) {
-        console.error('Google API 초기화 실패:', error);
-        reject(error);
-      }
-    });
-  });
-}
+// 전역 변수들도 window 객체에 할당
+window.gapi_loaded = false;
+window.auth_initialized = false;
 
 // 스크립트 동적 로드 함수
-function loadScript(src) {
+window.loadScript = function(src) {
   return new Promise((resolve, reject) => {
     const script = document.createElement('script');
     script.src = src;
@@ -69,19 +32,74 @@ function loadScript(src) {
     script.onerror = reject;
     document.head.appendChild(script);
   });
-}
+};
+
+// Google API 초기화 함수
+window.initializeGoogleAPI = async function() {
+  console.log('Google API 초기화 시작');
+  
+  if (typeof gapi === 'undefined') {
+    console.log('gapi 라이브러리 로드 중...');
+    await window.loadScript('https://apis.google.com/js/api.js');
+  }
+  
+  return new Promise((resolve, reject) => {
+    gapi.load('client:auth2', async () => {
+      try {
+        await gapi.client.init({
+          clientId: window.GOOGLE_CONFIG.CLIENT_ID,
+          scope: window.GOOGLE_CONFIG.SCOPE,
+          discoveryDocs: [window.GOOGLE_CONFIG.DISCOVERY_DOC, window.GOOGLE_CONFIG.GMAIL_DISCOVERY_DOC]
+        });
+        
+        window.gapi_loaded = true;
+        window.auth_initialized = true;
+        console.log('Google API 초기화 성공');
+        resolve(true);
+      } catch (error) {
+        console.error('Google API 초기화 실패:', error);
+        reject(error);
+      }
+    });
+  });
+};
+
+// 사용자 로그인 상태 확인
+window.isUserSignedIn = function() {
+  if (!window.gapi_loaded || !gapi.auth2) return false;
+  const authInstance = gapi.auth2.getAuthInstance();
+  return authInstance && authInstance.isSignedIn.get();
+};
+
+// 사용자 로그인
+window.signInUser = async function() {
+  if (!window.gapi_loaded) {
+    await window.initializeGoogleAPI();
+  }
+  
+  const authInstance = gapi.auth2.getAuthInstance();
+  return authInstance.signIn();
+};
+
+// 사용자 로그아웃
+window.signOutUser = async function() {
+  if (window.gapi_loaded && gapi.auth2) {
+    const authInstance = gapi.auth2.getAuthInstance();
+    return authInstance.signOut();
+  }
+};
 
 // Google Sheets 데이터 읽기
-async function readSheetData(sheetName, range = '') {
-  if (!gapi_loaded) {
-    await initializeGoogleAPI();
+window.readSheetData = async function(sheetName, range = '') {
+  if (!window.gapi_loaded) {
+    await window.initializeGoogleAPI();
   }
   
   const fullRange = range ? `${sheetName}!${range}` : sheetName;
   
   try {
     const response = await gapi.client.sheets.spreadsheets.values.get({
-      spreadsheetId: GOOGLE_CONFIG.SPREADSHEET_ID,
+      spreadsheetId: window.GOOGLE_CONFIG.SPREADSHEET_ID,
       range: fullRange,
     });
     
@@ -90,17 +108,17 @@ async function readSheetData(sheetName, range = '') {
     console.error('데이터 읽기 실패:', error);
     return [];
   }
-}
+};
 
 // Google Sheets 데이터 쓰기
-async function writeSheetData(sheetName, range, values) {
-  if (!gapi_loaded) {
-    await initializeGoogleAPI();
+window.writeSheetData = async function(sheetName, range, values) {
+  if (!window.gapi_loaded) {
+    await window.initializeGoogleAPI();
   }
   
   try {
     const response = await gapi.client.sheets.spreadsheets.values.update({
-      spreadsheetId: GOOGLE_CONFIG.SPREADSHEET_ID,
+      spreadsheetId: window.GOOGLE_CONFIG.SPREADSHEET_ID,
       range: `${sheetName}!${range}`,
       valueInputOption: 'USER_ENTERED',
       resource: {
@@ -113,17 +131,17 @@ async function writeSheetData(sheetName, range, values) {
     console.error('데이터 쓰기 실패:', error);
     throw error;
   }
-}
+};
 
 // Google Sheets 데이터 추가
-async function appendSheetData(sheetName, values) {
-  if (!gapi_loaded) {
-    await initializeGoogleAPI();
+window.appendSheetData = async function(sheetName, values) {
+  if (!window.gapi_loaded) {
+    await window.initializeGoogleAPI();
   }
   
   try {
     const response = await gapi.client.sheets.spreadsheets.values.append({
-      spreadsheetId: GOOGLE_CONFIG.SPREADSHEET_ID,
+      spreadsheetId: window.GOOGLE_CONFIG.SPREADSHEET_ID,
       range: `${sheetName}!A:A`,
       valueInputOption: 'USER_ENTERED',
       resource: {
@@ -136,40 +154,15 @@ async function appendSheetData(sheetName, values) {
     console.error('데이터 추가 실패:', error);
     throw error;
   }
-}
-
-// 사용자 로그인 확인
-function isUserSignedIn() {
-  if (!gapi_loaded || !gapi.auth2) return false;
-  const authInstance = gapi.auth2.getAuthInstance();
-  return authInstance && authInstance.isSignedIn.get();
-}
-
-// 사용자 로그인
-async function signInUser() {
-  if (!gapi_loaded) {
-    await initializeGoogleAPI();
-  }
-  
-  const authInstance = gapi.auth2.getAuthInstance();
-  return authInstance.signIn();
-}
-
-// 사용자 로그아웃
-async function signOutUser() {
-  if (gapi_loaded && gapi.auth2) {
-    const authInstance = gapi.auth2.getAuthInstance();
-    return authInstance.signOut();
-  }
-}
+};
 
 // Gmail 이메일 발송
-async function sendEmailViaGmail(to, subject, htmlContent) {
-  if (!gapi_loaded) {
-    await initializeGoogleAPI();
+window.sendEmailViaGmail = async function(to, subject, htmlContent) {
+  if (!window.gapi_loaded) {
+    await window.initializeGoogleAPI();
   }
   
-  if (!isUserSignedIn()) {
+  if (!window.isUserSignedIn()) {
     throw new Error('Gmail 발송을 위해 Google 계정 로그인이 필요합니다.');
   }
   
@@ -199,10 +192,10 @@ async function sendEmailViaGmail(to, subject, htmlContent) {
     console.error('Gmail 발송 실패:', error);
     throw error;
   }
-}
+};
 
 // 진단 결과 이메일 템플릿 생성
-function createResultEmailTemplate(participantData, scores) {
+window.createResultEmailTemplate = function(participantData, scores) {
   const avgScore = ((parseFloat(scores.narcissism) + parseFloat(scores.machiavellianism) + parseFloat(scores.psychopathy)) / 3).toFixed(1);
   
   // 종합 해석 결정
@@ -303,27 +296,27 @@ function createResultEmailTemplate(participantData, scores) {
 </body>
 </html>
   `;
-}
+};
 
 // 진단 결과 이메일 발송
-async function sendDiagnosisResultEmail(participantData, scores) {
+window.sendDiagnosisResultEmail = async function(participantData, scores) {
   const subject = `리더십 진단 결과 - ${participantData.name}님`;
-  const htmlContent = createResultEmailTemplate(participantData, scores);
+  const htmlContent = window.createResultEmailTemplate(participantData, scores);
   
   try {
-    const result = await sendEmailViaGmail(participantData.email, subject, htmlContent);
+    const result = await window.sendEmailViaGmail(participantData.email, subject, htmlContent);
     console.log('이메일 발송 성공:', result);
     return result;
   } catch (error) {
     console.error('이메일 발송 실패:', error);
     throw error;
   }
-}
+};
 
 // 참여 코드 이메일 발송
-async function sendParticipationCodeEmail(participantData) {
+window.sendParticipationCodeEmail = async function(participantData) {
   const subject = `리더십 진단 참여 안내 - ${participantData.name}님`;
-  const diagnosisLink = `${window.location.origin}/진단지.html?code=${participantData.code}`;
+  const diagnosisLink = `${window.location.origin}/diagnosis.html?code=${participantData.code}`;
   
   const htmlContent = `
 <!DOCTYPE html>
@@ -387,17 +380,17 @@ async function sendParticipationCodeEmail(participantData) {
   `;
   
   try {
-    const result = await sendEmailViaGmail(participantData.email, subject, htmlContent);
+    const result = await window.sendEmailViaGmail(participantData.email, subject, htmlContent);
     console.log('참여코드 이메일 발송 성공:', result);
     return result;
   } catch (error) {
     console.error('참여코드 이메일 발송 실패:', error);
     throw error;
   }
-}
+};
 
 // 참여자 관련 함수들
-async function saveParticipant(participant) {
+window.saveParticipant = async function(participant) {
   const timestamp = new Date().toISOString();
   const row = [
     participant.id || Date.now(),
@@ -412,11 +405,11 @@ async function saveParticipant(participant) {
     participant.adminId || 'admin'
   ];
   
-  return await appendSheetData('participants', [row]);
-}
+  return await window.appendSheetData('participants', [row]);
+};
 
-async function getParticipants() {
-  const data = await readSheetData('participants', 'A:J');
+window.getParticipants = async function() {
+  const data = await window.readSheetData('participants', 'A:J');
   if (data.length <= 1) return []; // 헤더만 있는 경우
   
   return data.slice(1).map(row => ({
@@ -431,10 +424,10 @@ async function getParticipants() {
     completedAt: row[8],
     adminId: row[9]
   }));
-}
+};
 
-async function updateParticipantStatus(code, status, completedAt = null) {
-  const participants = await getParticipants();
+window.updateParticipantStatus = async function(code, status, completedAt = null) {
+  const participants = await window.getParticipants();
   const index = participants.findIndex(p => p.code === code);
   
   if (index !== -1) {
@@ -443,12 +436,12 @@ async function updateParticipantStatus(code, status, completedAt = null) {
       [status, completedAt || new Date().toISOString()]
     ];
     
-    return await writeSheetData('participants', `G${rowIndex}:H${rowIndex}`, values);
+    return await window.writeSheetData('participants', `G${rowIndex}:H${rowIndex}`, values);
   }
-}
+};
 
 // 진단 결과 저장
-async function saveDiagnosisResult(result) {
+window.saveDiagnosisResult = async function(result) {
   const timestamp = new Date().toISOString();
   const row = [
     result.id || Date.now(),
@@ -463,11 +456,11 @@ async function saveDiagnosisResult(result) {
     JSON.stringify(result) // 전체 데이터를 JSON으로 저장
   ];
   
-  return await appendSheetData('results', [row]);
-}
+  return await window.appendSheetData('results', [row]);
+};
 
-async function getDiagnosisResults() {
-  const data = await readSheetData('results', 'A:J');
+window.getDiagnosisResults = async function() {
+  const data = await window.readSheetData('results', 'A:J');
   if (data.length <= 1) return [];
   
   return data.slice(1).map(row => ({
@@ -484,60 +477,38 @@ async function getDiagnosisResults() {
     completedAt: row[8],
     fullData: row[9] ? JSON.parse(row[9]) : null
   }));
-}
+};
 
 // 오류 처리
-function handleGoogleAPIError(error) {
+window.handleGoogleAPIError = function(error) {
   console.error('Google API 오류:', error);
   
   if (error.status === 401) {
     alert('인증이 필요합니다. 다시 로그인해주세요.');
-    signInUser();
+    window.signInUser();
   } else if (error.status === 403) {
     alert('권한이 없습니다. 스프레드시트 접근 권한을 확인해주세요.');
   } else {
     alert('데이터 저장 중 오류가 발생했습니다: ' + error.message);
   }
-}(row[5]),
-      psychopathy: parseFloat(row[6])
-    },
-    avgScore: parseFloat(row[7]),
-    completedAt: row[8],
-    fullData: row[9] ? JSON.parse(row[9]) : null
-  }));
+};
+
+// 전역 접근을 위한 별칭 생성 (하위 호환성)
+if (typeof window !== 'undefined') {
+  // 기존 코드와의 호환성을 위해 전역 변수로도 할당
+  window.GOOGLE_CONFIG = window.GOOGLE_CONFIG;
+  window.initializeGoogleAPI = window.initializeGoogleAPI;
+  window.isUserSignedIn = window.isUserSignedIn;
+  window.signInUser = window.signInUser;
+  window.signOutUser = window.signOutUser;
+  window.saveParticipant = window.saveParticipant;
+  window.getParticipants = window.getParticipants;
+  window.updateParticipantStatus = window.updateParticipantStatus;
+  window.sendParticipationCodeEmail = window.sendParticipationCodeEmail;
+  window.sendDiagnosisResultEmail = window.sendDiagnosisResultEmail;
+  window.saveDiagnosisResult = window.saveDiagnosisResult;
+  window.getDiagnosisResults = window.getDiagnosisResults;
+  window.handleGoogleAPIError = window.handleGoogleAPIError;
 }
 
-// 오류 처리
-function handleGoogleAPIError(error) {
-  console.error('Google API 오류:', error);
-  
-  if (error.status === 401) {
-    alert('인증이 필요합니다. 다시 로그인해주세요.');
-    signInUser();
-  } else if (error.status === 403) {
-    alert('권한이 없습니다. 스프레드시트 접근 권한을 확인해주세요.');
-  } else {
-    alert('데이터 저장 중 오류가 발생했습니다: ' + error.message);
-  }
-}(row[5]),
-      psychopathy: parseFloat(row[6])
-    },
-    avgScore: parseFloat(row[7]),
-    completedAt: row[8],
-    fullData: row[9] ? JSON.parse(row[9]) : null
-  }));
-}
-
-// 오류 처리
-function handleGoogleAPIError(error) {
-  console.error('Google API 오류:', error);
-  
-  if (error.status === 401) {
-    alert('인증이 필요합니다. 다시 로그인해주세요.');
-    signInUser();
-  } else if (error.status === 403) {
-    alert('권한이 없습니다. 스프레드시트 접근 권한을 확인해주세요.');
-  } else {
-    alert('데이터 저장 중 오류가 발생했습니다: ' + error.message);
-  }
-}
+console.log('config.js 파일 실행 완료 - 모든 함수가 window 객체에 등록됨');
