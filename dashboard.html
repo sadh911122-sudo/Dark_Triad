@@ -23,6 +23,7 @@
       border-left: 4px solid #fff;
     }
   </style>
+  <script src="auth.js"></script>
 </head>
 <body class="bg-gray-100">
   
@@ -199,30 +200,20 @@
   <script>
     // 페이지 로드 시 인증 확인 및 초기화
     document.addEventListener('DOMContentLoaded', function() {
-      // 인증 확인
-      if (!window.AdminAuth) {
-        // index.html에서 로드되지 않은 경우 직접 인증 확인
-        const savedAdmin = localStorage.getItem('currentAdmin');
-        if (!savedAdmin) {
-          alert('로그인이 필요합니다.');
-          window.location.href = 'index.html';
-          return;
-        }
-        const currentAdmin = JSON.parse(savedAdmin);
-        document.getElementById('adminWelcome').textContent = `${currentAdmin.name}님 환영합니다`;
-      } else {
-        const currentAdmin = AdminAuth.checkAuth();
-        if (currentAdmin) {
-          document.getElementById('adminWelcome').textContent = `${currentAdmin.name}님 환영합니다`;
-        }
-      }
-      
-      // 초기화
-      updateDateTime();
-      setInterval(updateDateTime, 60000);
-      loadDashboardData();
-    });
-
+  // Auth 시스템 초기화 (인증 체크 + 환영 메시지 + 비활성화 타이머 시작)
+  if (!AdminAuth.init()) {
+    return; // 인증 실패 시 리다이렉트됨
+  }
+  
+  // 현재 관리자 정보 가져오기
+  const currentAdmin = AdminAuth.getCurrentAdmin();
+  
+  // 나머지 페이지별 초기화 코드...
+  updateDateTime();
+  setInterval(updateDateTime, 60000);
+  setupMobileMenu();
+  // 페이지별 고유 초기화 함수들...
+});
     // 현재 시간 업데이트
     function updateDateTime() {
       const now = new Date();
