@@ -30,6 +30,7 @@
       border-left: 4px solid #fff;
     }
   </style>
+  <script src="auth.js"></script>
 </head>
 <body class="bg-gray-100">
   
@@ -198,26 +199,30 @@
       }
     }
 
-    // 로그인
-    function login() {
-      const adminId = document.getElementById('adminId').value;
-      const password = document.getElementById('adminPassword').value;
-      
-      const savedAdmins = JSON.parse(localStorage.getItem('adminAccounts') || '[]');
-      const admin = savedAdmins.find(a => a.id === adminId && a.password === password && a.status === 'active');
-      
-      if (admin) {
-        // 마지막 로그인 시간 업데이트
-        admin.lastLoginAt = new Date().toISOString();
-        localStorage.setItem('adminAccounts', JSON.stringify(savedAdmins));
-        
-        currentAdmin = admin;
-        localStorage.setItem('currentAdmin', JSON.stringify(admin));
-        showMainLayout();
-      } else {
-        alert('아이디 또는 비밀번호가 올바르지 않거나 비활성화된 계정입니다.');
-      }
-    }
+// 로그인 함수 수정
+function login() {
+  const adminId = document.getElementById('adminId').value;
+  const password = document.getElementById('adminPassword').value;
+  
+  const savedAdmins = JSON.parse(localStorage.getItem('adminAccounts') || '[]');
+  const admin = savedAdmins.find(a => a.id === adminId && a.password === password && a.status === 'active');
+  
+  if (admin) {
+    // 마지막 로그인 시간 업데이트
+    admin.lastLoginAt = new Date().toISOString();
+    
+    // adminAccounts 배열 업데이트
+    const updatedAdmins = savedAdmins.map(a => a.id === admin.id ? admin : a);
+    localStorage.setItem('adminAccounts', JSON.stringify(updatedAdmins));
+    
+    // 현재 로그인한 관리자 정보 저장
+    localStorage.setItem('currentAdmin', JSON.stringify(admin));
+    
+    showMainLayout();
+  } else {
+    alert('아이디 또는 비밀번호가 올바르지 않거나 비활성화된 계정입니다.');
+  }
+}
 
     // 메인 레이아웃 표시
     function showMainLayout() {
