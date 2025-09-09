@@ -8,8 +8,8 @@ const GOOGLE_CONFIG = {
   // 스프레드시트 ID 
   SPREADSHEET_ID: '1uH564W7nLynLx0bMIU_nKjYVj9tA9urvBDbwe-jV5W0',
   
-  // API 범위
-  SCOPE: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file',
+  // API 범위 (Gmail API 추가)
+  SCOPE: 'https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/gmail.send',
   
   // Discovery 문서
   DISCOVERY_DOC: 'https://sheets.googleapis.com/$discovery/rest?version=v4',
