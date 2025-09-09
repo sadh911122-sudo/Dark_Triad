@@ -1,51 +1,270 @@
-<!-- admin/index.html -->
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>관리자 로그인</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>리더십 진단 관리자 시스템</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+    }
+    .gradient-bg {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .glass-effect {
+      backdrop-filter: blur(10px);
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .nav-item {
+      transition: all 0.3s ease;
+    }
+    .nav-item:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+    .nav-item.active {
+      background-color: rgba(255, 255, 255, 0.2);
+      border-left: 4px solid #fff;
+    }
+  </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen">
-  <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-sm">
-    <h2 class="text-2xl font-bold mb-6 text-center">관리자 로그인</h2>
-    <form id="loginForm" class="space-y-4">
-      <div>
-        <label class="block mb-1 font-medium text-sm">아이디</label>
-        <input type="text" id="loginId" required class="w-full border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+<body class="bg-gray-100">
+  
+  <!-- Login Section -->
+  <div id="loginSection" class="min-h-screen gradient-bg flex items-center justify-center">
+    <div class="glass-effect rounded-lg p-8 max-w-md w-full mx-4">
+      <div class="text-center mb-8">
+        <i class="fas fa-shield-alt text-4xl text-white mb-4"></i>
+        <h1 class="text-3xl font-bold text-white mb-2">관리자 로그인</h1>
+        <p class="text-gray-200">리더십 진단 시스템 관리</p>
       </div>
-      <div>
-        <label class="block mb-1 font-medium text-sm">비밀번호</label>
-        <input type="password" id="loginPassword" required class="w-full border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+
+      <form id="loginForm" class="space-y-6">
+        <div>
+          <label for="adminId" class="block text-sm font-medium text-gray-700 mb-2">
+            <i class="fas fa-user mr-1"></i>관리자 ID
+          </label>
+          <input type="text" id="adminId" required value="admin"
+                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                 placeholder="관리자 ID를 입력하세요">
+        </div>
+        
+        <div>
+          <label for="adminPassword" class="block text-sm font-medium text-gray-700 mb-2">
+            <i class="fas fa-lock mr-1"></i>비밀번호
+          </label>
+          <input type="password" id="adminPassword" required value="1234"
+                 class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                 placeholder="비밀번호를 입력하세요">
+        </div>
+
+        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-all duration-200">
+          <i class="fas fa-sign-in-alt mr-2"></i>로그인
+        </button>
+      </form>
+
+      <div class="mt-6 text-center">
+        <button onclick="createTestAccount()" class="text-blue-600 hover:text-blue-800 text-sm underline">
+          테스트 계정 생성
+        </button>
       </div>
-      <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">로그인</button>
-    </form>
-    <p id="loginError" class="mt-4 text-sm text-red-500 text-center hidden">아이디 또는 비밀번호가 올바르지 않습니다.</p>
+    </div>
+  </div>
+
+  <!-- Main Layout -->
+  <div id="mainLayout" class="hidden">
+    <!-- Navigation Sidebar -->
+    <div class="fixed inset-y-0 left-0 w-64 bg-gray-800 text-white">
+      <div class="p-6">
+        <h1 class="text-xl font-bold">관리자 대시보드</h1>
+        <p class="text-gray-400 text-sm" id="adminWelcome">환영합니다</p>
+      </div>
+      
+      <nav class="mt-8">
+        <a href="dashboard.html" class="nav-item flex items-center px-6 py-3 text-gray-300 hover:text-white">
+          <i class="fas fa-tachometer-alt mr-3"></i>대시보드
+        </a>
+        <a href="participants.html" class="nav-item flex items-center px-6 py-3 text-gray-300 hover:text-white">
+          <i class="fas fa-users mr-3"></i>참여자 관리
+        </a>
+        <a href="feedback.html" class="nav-item flex items-center px-6 py-3 text-gray-300 hover:text-white">
+          <i class="fas fa-edit mr-3"></i>피드백 편집
+        </a>
+        <a href="admin-management.html" class="nav-item flex items-center px-6 py-3 text-gray-300 hover:text-white">
+          <i class="fas fa-user-cog mr-3"></i>관리자 관리
+        </a>
+        <a href="#" class="nav-item flex items-center px-6 py-3 text-gray-300 hover:text-white" onclick="logout()">
+          <i class="fas fa-sign-out-alt mr-3"></i>로그아웃
+        </a>
+      </nav>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="ml-64 min-h-screen bg-gray-100">
+      <!-- Header -->
+      <header class="bg-white shadow-sm border-b border-gray-200">
+        <div class="px-6 py-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-2xl font-semibold text-gray-800">리더십 진단 관리자</h2>
+            <div class="flex items-center space-x-4">
+              <div class="text-sm text-gray-600" id="currentDateTime"></div>
+              <button onclick="logout()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm">
+                <i class="fas fa-sign-out-alt mr-1"></i>로그아웃
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Content Frame -->
+      <div class="p-6">
+        <div class="bg-white rounded-lg shadow p-6 text-center">
+          <h3 class="text-xl font-semibold mb-4">시작하기</h3>
+          <p class="text-gray-600 mb-6">관리하고 싶은 기능을 선택해주세요.</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <a href="dashboard.html" class="bg-blue-600 hover:bg-blue-700 text-white py-4 px-6 rounded-lg block transition-colors">
+              <i class="fas fa-tachometer-alt text-2xl mb-2"></i>
+              <div>대시보드</div>
+            </a>
+            <a href="participants.html" class="bg-green-600 hover:bg-green-700 text-white py-4 px-6 rounded-lg block transition-colors">
+              <i class="fas fa-users text-2xl mb-2"></i>
+              <div>참여자 관리</div>
+            </a>
+            <a href="feedback.html" class="bg-purple-600 hover:bg-purple-700 text-white py-4 px-6 rounded-lg block transition-colors">
+              <i class="fas fa-edit text-2xl mb-2"></i>
+              <div>피드백 편집</div>
+            </a>
+            <a href="admin-management.html" class="bg-orange-600 hover:bg-orange-700 text-white py-4 px-6 rounded-lg block transition-colors">
+              <i class="fas fa-user-cog text-2xl mb-2"></i>
+              <div>관리자 관리</div>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
-    const loginForm = document.getElementById('loginForm');
-    const loginError = document.getElementById('loginError');
+    // 전역 변수
+    let currentAdmin = null;
 
-    loginForm.addEventListener('submit', function (e) {
-      e.preventDefault();
-
-      const id = document.getElementById('loginId').value.trim();
-      const pw = document.getElementById('loginPassword').value;
-
-      const accounts = JSON.parse(localStorage.getItem('adminAccounts')) || [];
-      const matched = accounts.find(a => a.id === id && a.password === pw && a.status !== 'inactive');
-
-      if (matched) {
-        matched.lastLoginAt = new Date().toISOString();
-        localStorage.setItem('adminAccounts', JSON.stringify(accounts));
-        localStorage.setItem('currentAdmin', JSON.stringify(matched));
-        window.location.href = 'dashboard.html';  // 로그인 성공 시 대시보드로 이동
-      } else {
-        loginError.classList.remove('hidden');
-      }
+    // 페이지 로드 시 초기화
+    document.addEventListener('DOMContentLoaded', function() {
+      checkLoginStatus();
+      updateDateTime();
+      setInterval(updateDateTime, 60000);
+      
+      // 로그인 폼 이벤트
+      document.getElementById('loginForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        login();
+      });
     });
+
+    // 로그인 상태 확인
+    function checkLoginStatus() {
+      const savedAdmin = localStorage.getItem('currentAdmin');
+      if (savedAdmin) {
+        currentAdmin = JSON.parse(savedAdmin);
+        showMainLayout();
+      }
+    }
+
+    // 테스트 계정 생성
+    function createTestAccount() {
+      const testAdmin = {
+        id: 'admin',
+        password: '1234',
+        name: '관리자',
+        email: 'admin@example.com',
+        role: 'super_admin',
+        department: '시스템',
+        status: 'active',
+        createdAt: new Date().toISOString(),
+        lastLoginAt: null,
+        isDefault: true
+      };
+      
+      const adminAccounts = JSON.parse(localStorage.getItem('adminAccounts') || '[]');
+      if (!adminAccounts.find(a => a.id === 'admin')) {
+        adminAccounts.push(testAdmin);
+        localStorage.setItem('adminAccounts', JSON.stringify(adminAccounts));
+        alert('테스트 계정이 생성되었습니다.\nID: admin\n비밀번호: 1234');
+      } else {
+        alert('테스트 계정이 이미 존재합니다.');
+      }
+    }
+
+    // 로그인
+    function login() {
+      const adminId = document.getElementById('adminId').value;
+      const password = document.getElementById('adminPassword').value;
+      
+      const savedAdmins = JSON.parse(localStorage.getItem('adminAccounts') || '[]');
+      const admin = savedAdmins.find(a => a.id === adminId && a.password === password && a.status === 'active');
+      
+      if (admin) {
+        // 마지막 로그인 시간 업데이트
+        admin.lastLoginAt = new Date().toISOString();
+        localStorage.setItem('adminAccounts', JSON.stringify(savedAdmins));
+        
+        currentAdmin = admin;
+        localStorage.setItem('currentAdmin', JSON.stringify(admin));
+        showMainLayout();
+      } else {
+        alert('아이디 또는 비밀번호가 올바르지 않거나 비활성화된 계정입니다.');
+      }
+    }
+
+    // 메인 레이아웃 표시
+    function showMainLayout() {
+      document.getElementById('loginSection').classList.add('hidden');
+      document.getElementById('mainLayout').classList.remove('hidden');
+      
+      if (currentAdmin) {
+        document.getElementById('adminWelcome').textContent = `${currentAdmin.name}님 환영합니다`;
+      }
+    }
+
+    // 로그아웃
+    function logout() {
+      if (confirm('로그아웃 하시겠습니까?')) {
+        localStorage.removeItem('currentAdmin');
+        currentAdmin = null;
+        window.location.href = 'index.html';
+      }
+    }
+
+    // 현재 시간 업데이트
+    function updateDateTime() {
+      const now = new Date();
+      const dateTimeString = now.toLocaleString('ko-KR');
+      const element = document.getElementById('currentDateTime');
+      if (element) {
+        element.textContent = dateTimeString;
+      }
+    }
+
+    // 공통 인증 체크 함수 (다른 페이지에서 사용)
+    window.AdminAuth = {
+      checkAuth: function() {
+        const savedAdmin = localStorage.getItem('currentAdmin');
+        if (!savedAdmin) {
+          alert('로그인이 필요합니다.');
+          window.location.href = 'index.html';
+          return false;
+        }
+        return JSON.parse(savedAdmin);
+      },
+      
+      logout: function() {
+        localStorage.removeItem('currentAdmin');
+        window.location.href = 'index.html';
+      }
+    };
   </script>
 </body>
 </html>
