@@ -30,7 +30,6 @@
       border-left: 4px solid #fff;
     }
   </style>
-  <script src="auth.js"></script>
 </head>
 <body class="bg-gray-100">
   
@@ -48,7 +47,7 @@
           <label for="adminId" class="block text-sm font-medium text-gray-700 mb-2">
             <i class="fas fa-user mr-1"></i>관리자 ID
           </label>
-          <input type="text" id="adminId" required
+          <input type="text" id="adminId" required value="admin"
                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                  placeholder="관리자 ID를 입력하세요">
         </div>
@@ -57,7 +56,7 @@
           <label for="adminPassword" class="block text-sm font-medium text-gray-700 mb-2">
             <i class="fas fa-lock mr-1"></i>비밀번호
           </label>
-          <input type="password" id="adminPassword" required
+          <input type="password" id="adminPassword" required value="123456"
                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                  placeholder="비밀번호를 입력하세요">
         </div>
@@ -67,12 +66,15 @@
         </button>
       </form>
 
-      <!-- 기본 계정 안내 메시지 -->
+      <!-- 기본 계정 안내 -->
       <div class="mt-6 text-center">
         <p class="text-sm text-gray-600 bg-yellow-50 p-3 rounded-lg border border-yellow-200">
           <i class="fas fa-info-circle mr-1 text-yellow-600"></i>
-          기본 계정: <strong>admin / 123456</strong>
+          임시 계정: <strong>admin / 123456</strong>
         </p>
+        <button onclick="createAccount()" class="mt-2 text-blue-600 hover:text-blue-800 text-sm underline">
+          계정이 없다면 클릭
+        </button>
       </div>
     </div>
   </div>
@@ -151,60 +153,82 @@
   </div>
 
   <script>
-    // 페이지 로드 시 초기화
+    // 간단한 로그인 시스템 (auth.js 대체)
     document.addEventListener('DOMContentLoaded', function() {
-      // auth.js 초기화 (기본 계정 생성 포함)
-      window.AdminAuth.initializeDefaultAccount();
-      
-      // 로그인 상태 확인
       checkLoginStatus();
-      
-      // 시간 업데이트
       updateDateTime();
       setInterval(updateDateTime, 60000);
       
-      // 로그인 폼 이벤트 등록
       document.getElementById('loginForm').addEventListener('submit', function(e) {
         e.preventDefault();
         handleLogin();
       });
     });
 
-    // 🆕 auth.js를 사용한 로그인 처리
+    // 계정 생성
+    function createAccount() {
+      const accounts = [{
+        id: 'admin',
+        password: '123456',
+        name: '시스템 관리자',
+        email: 'admin@system.com',
+        role: 'super_admin',
+        status: 'active',
+        createdAt: new Date().toISOString(),
+        lastLogin: null,
+        loginCount: 0
+      }];
+      
+      localStorage.setItem('adminAccounts', JSON.stringify(accounts));
+      alert('계정이 생성되었습니다!\nadmin / 123456');
+    }
+
+    // 로그인 처리
     function handleLogin() {
       const username = document.getElementById('adminId').value.trim();
       const password = document.getElementById('adminPassword').value;
       
-      if (!username || !password) {
-        alert('아이디와 비밀번호를 모두 입력해주세요.');
-        return;
+      // 계정이 없으면 자동 생성
+      let accounts = JSON.parse(localStorage.getItem('adminAccounts') || '[]');
+      if (accounts.length === 0) {
+        createAccount();
+        accounts = JSON.parse(localStorage.getItem('adminAccounts') || '[]');
       }
       
-      // auth.js의 login 함수 사용
-      const result = window.AdminAuth.login(username, password);
-      
-      if (result.success) {
-        console.log('로그인 성공:', result.admin);
+      const account = accounts.find(acc => 
+        acc.id === username && 
+        acc.password === password && 
+        acc.status === 'active'
+      );
+
+      if (account) {
+        const loginInfo = {
+          id: account.id,
+          name: account.name,
+          email: account.email,
+          role: account.role,
+          loginTime: new Date().toISOString()
+        };
+
+        localStorage.setItem('currentAdmin', JSON.stringify(loginInfo));
+        
+        account.lastLogin = new Date().toISOString();
+        account.loginCount = (account.loginCount || 0) + 1;
+        localStorage.setItem('adminAccounts', JSON.stringify(accounts));
+
         showMainLayout();
       } else {
-        alert(result.message || '로그인에 실패했습니다.');
-        
-        // 입력 필드 초기화
+        alert('아이디 또는 비밀번호가 잘못되었습니다.');
         document.getElementById('adminPassword').value = '';
-        document.getElementById('adminId').focus();
       }
     }
 
     // 로그인 상태 확인
     function checkLoginStatus() {
-      // auth.js의 getCurrentAdmin 사용
-      const currentAdmin = window.AdminAuth.getCurrentAdmin();
-      
-      if (currentAdmin) {
-        console.log('이미 로그인된 사용자:', currentAdmin);
+      const savedAdmin = localStorage.getItem('currentAdmin');
+      if (savedAdmin) {
         showMainLayout();
       } else {
-        // 로그인 섹션 표시
         document.getElementById('loginSection').classList.remove('hidden');
         document.getElementById('mainLayout').classList.add('hidden');
       }
@@ -215,20 +239,21 @@
       document.getElementById('loginSection').classList.add('hidden');
       document.getElementById('mainLayout').classList.remove('hidden');
       
-      // auth.js의 환영 메시지 업데이트 사용
-      window.AdminAuth.updateWelcomeMessage();
-      
-      // 활동 감지 시작
-      window.AdminAuth.setupActivityDetection();
+      const admin = JSON.parse(localStorage.getItem('currentAdmin'));
+      if (admin) {
+        document.getElementById('adminWelcome').textContent = `${admin.name}님 환영합니다`;
+      }
     }
 
-    // 🆕 auth.js를 사용한 로그아웃 처리
+    // 로그아웃
     function handleLogout() {
-      // auth.js의 logout 함수 사용 (확인 메시지 포함)
-      window.AdminAuth.logout();
+      if (confirm('로그아웃 하시겠습니까?')) {
+        localStorage.removeItem('currentAdmin');
+        window.location.href = 'index.html';
+      }
     }
 
-    // 현재 시간 업데이트
+    // 시간 업데이트
     function updateDateTime() {
       const now = new Date();
       const dateTimeString = now.toLocaleString('ko-KR');
@@ -238,21 +263,13 @@
       }
     }
 
-    // Enter 키 처리
+    // Enter 키 로그인
     document.addEventListener('keypress', function(e) {
       if (e.key === 'Enter' && !document.getElementById('loginSection').classList.contains('hidden')) {
         e.preventDefault();
         handleLogin();
       }
     });
-
-    // 개발자 도구 콘솔용 유틸리티
-    window.debugAuth = function() {
-      console.log('=== 인증 시스템 디버그 정보 ===');
-      console.log('세션 정보:', window.AdminAuth.getSessionInfo());
-      console.log('관리자 계정 목록:', JSON.parse(localStorage.getItem('adminAccounts') || '[]'));
-      console.log('현재 로그인:', window.AdminAuth.getCurrentAdmin());
-    };
   </script>
 </body>
 </html>
