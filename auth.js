@@ -25,7 +25,7 @@ window.AdminAuth = {
       
       const defaultAccount = {
         id: 'admin',
-        password: '1234',
+        password: '123456',
         name: '시스템 관리자',
         email: 'admin@system.com',
         role: 'super_admin',
@@ -38,7 +38,7 @@ window.AdminAuth = {
       adminAccounts.push(defaultAccount);
       localStorage.setItem('adminAccounts', JSON.stringify(adminAccounts));
       
-      console.log('✅ 기본 계정 생성 완료: admin/1234');
+      console.log('✅ 기본 계정 생성 완료: admin/123456');
       console.log('📝 로그인 후 비밀번호를 변경하세요.');
     }
   },
@@ -373,5 +373,5 @@ window.addEventListener('error', function(e) {
 if (typeof console !== 'undefined') {
   console.log('AdminAuth 시스템이 로드되었습니다.');
   console.log('세션 정보 확인: AdminAuth.getSessionInfo()');
-  console.log('기본 계정: admin/1234 (첫 실행 시 자동 생성)');
+  console.log('기본 계정: admin/123456 (첫 실행 시 자동 생성)');
 }
