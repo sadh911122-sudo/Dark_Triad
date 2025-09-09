@@ -1,629 +1,4 @@
-<ul class="text-sm space-y-1" id="machiavellianism_preview_tips">
-                      <li>내용을 입력해주세요</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Psychopathy Feedback Editor -->
-        <div id="psychopathyFeedback" class="dimension-content p-6 hidden">
-          <h4 class="text-xl font-semibold mb-6 text-teal-600">
-            <i class="fas fa-mask mr-2"></i>사이코패시 피드백 편집
-          </h4>
-          
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <!-- Editor -->
-            <div>
-              <form id="psychopathyFeedbackForm" class="space-y-6">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">차원 이름</label>
-                  <input type="text" id="psychopathy_name" 
-                         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                         placeholder="사이코패시">
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">간단한 설명</label>
-                  <input type="text" id="psychopathy_shortDesc" 
-                         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                         placeholder="감정적 냉담함과 충동성">
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">상세 설명</label>
-                  <textarea id="psychopathy_description" rows="3"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                            placeholder="이 차원에 대한 상세한 설명을 입력하세요..."></textarea>
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">긍정적 측면 (한 줄당 하나씩)</label>
-                  <textarea id="psychopathy_positiveAspects" rows="4"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                            placeholder="압박 상황에서의 냉정함&#10;빠른 의사결정 능력&#10;스트레스 저항력"></textarea>
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">주의사항 (한 줄당 하나씩)</label>
-                  <textarea id="psychopathy_risks" rows="4"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                            placeholder="팀원과의 감정적 단절&#10;충동적인 의사결정&#10;윤리적 판단력 부족"></textarea>
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">개발 팁 (한 줄당 하나씩)</label>
-                  <textarea id="psychopathy_developmentTips" rows="5"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                            placeholder="공감 능력 개발하기&#10;팀원의 감정 상태 관찰하기&#10;의사결정 전 숙고하기"></textarea>
-                </div>
-
-                <button type="submit" class="w-full bg-teal-600 hover:bg-teal-700 text-white py-2 px-4 rounded-lg">
-                  <i class="fas fa-save mr-2"></i>사이코패시 피드백 저장
-                </button>
-              </form>
-            </div>
-
-            <!-- Preview -->
-            <div class="bg-gray-50 rounded-lg p-6">
-              <h5 class="text-lg font-semibold mb-4">실시간 미리보기</h5>
-              <div id="psychopathyPreview" class="bg-white rounded-lg p-4 border">
-                <h6 class="font-semibold text-teal-600 text-lg mb-2">사이코패시</h6>
-                <p class="text-sm text-gray-600 mb-3">감정적 냉담함과 충동성</p>
-                <p class="text-sm mb-4">미리보기를 위해 내용을 입력해주세요.</p>
-                
-                <div class="grid grid-cols-1 gap-4">
-                  <div>
-                    <h6 class="font-medium text-green-700 mb-2">긍정적 측면</h6>
-                    <ul class="text-sm space-y-1" id="psychopathy_preview_positive">
-                      <li>내용을 입력해주세요</li>
-                    </ul>
-                  </div>
-                  
-                  <div>
-                    <h6 class="font-medium text-red-700 mb-2">주의사항</h6>
-                    <ul class="text-sm space-y-1" id="psychopathy_preview_risks">
-                      <li>내용을 입력해주세요</li>
-                    </ul>
-                  </div>
-                  
-                  <div>
-                    <h6 class="font-medium text-blue-700 mb-2">개발 팁</h6>
-                    <ul class="text-sm space-y-1" id="psychopathy_preview_tips">
-                      <li>내용을 입력해주세요</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Overall Interpretation Editor -->
-        <div id="overallFeedback" class="dimension-content p-6 hidden">
-          <h4 class="text-xl font-semibold mb-6 text-purple-600">
-            <i class="fas fa-chart-line mr-2"></i>종합 해석 편집
-          </h4>
-          
-          <div class="space-y-8">
-            <!-- Very Low Score -->
-            <div class="border border-gray-200 rounded-lg p-6">
-              <h5 class="text-lg font-semibold mb-4 text-green-600">매우 낮은 점수 (1.0 - 2.0)</h5>
-              <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="space-y-4">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">제목</label>
-                    <input type="text" id="veryLow_title" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                           placeholder="건강한 리더십 성향">
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">설명</label>
-                    <textarea id="veryLow_description" rows="3"
-                              class="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                              placeholder="매우 건강하고 균형 잡힌 리더십 성향을 보이고 있습니다."></textarea>
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">권장사항</label>
-                    <textarea id="veryLow_advice" rows="3"
-                              class="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                              placeholder="현재의 균형 잡힌 리더십 스타일을 유지하세요."></textarea>
-                  </div>
-                </div>
-                <div class="bg-green-50 rounded-lg p-4">
-                  <h6 class="font-medium text-green-800 mb-2">미리보기</h6>
-                  <div id="veryLow_preview" class="text-sm">
-                    <h6 class="font-semibold text-green-600">건강한 리더십 성향</h6>
-                    <p class="mt-1">내용을 입력해주세요</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Low Score -->
-            <div class="border border-gray-200 rounded-lg p-6">
-              <h5 class="text-lg font-semibold mb-4 text-blue-600">낮은 점수 (2.0 - 3.0)</h5>
-              <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="space-y-4">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">제목</label>
-                    <input type="text" id="low_title" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                           placeholder="안정적인 리더십 성향">
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">설명</label>
-                    <textarea id="low_description" rows="3"
-                              class="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                              placeholder="전반적으로 안정적이고 건강한 리더십 성향을 나타냅니다."></textarea>
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">권장사항</label>
-                    <textarea id="low_advice" rows="3"
-                              class="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                              placeholder="현재의 긍정적인 리더십 특성을 더욱 발전시키세요."></textarea>
-                  </div>
-                </div>
-                <div class="bg-blue-50 rounded-lg p-4">
-                  <h6 class="font-medium text-blue-800 mb-2">미리보기</h6>
-                  <div id="low_preview" class="text-sm">
-                    <h6 class="font-semibold text-blue-600">안정적인 리더십 성향</h6>
-                    <p class="mt-1">내용을 입력해주세요</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Moderate Score -->
-            <div class="border border-gray-200 rounded-lg p-6">
-              <h5 class="text-lg font-semibold mb-4 text-yellow-600">보통 점수 (3.0 - 4.0)</h5>
-              <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="space-y-4">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">제목</label>
-                    <input type="text" id="moderate_title" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                           placeholder="주의가 필요한 리더십 성향">
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">설명</label>
-                    <textarea id="moderate_description" rows="3"
-                              class="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                              placeholder="일부 영역에서 주의깊은 자기성찰과 개선이 필요합니다."></textarea>
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">권장사항</label>
-                    <textarea id="moderate_advice" rows="3"
-                              class="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                              placeholder="자신의 리더십 스타일을 점검하고 개선하세요."></textarea>
-                  </div>
-                </div>
-                <div class="bg-yellow-50 rounded-lg p-4">
-                  <h6 class="font-medium text-yellow-800 mb-2">미리보기</h6>
-                  <div id="moderate_preview" class="text-sm">
-                    <h6 class="font-semibold text-yellow-600">주의가 필요한 리더십 성향</h6>
-                    <p class="mt-1">내용을 입력해주세요</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- High Score -->
-            <div class="border border-gray-200 rounded-lg p-6">
-              <h5 class="text-lg font-semibold mb-4 text-red-600">높은 점수 (4.0 - 5.0)</h5>
-              <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div class="space-y-4">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">제목</label>
-                    <input type="text" id="high_title" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                           placeholder="개선이 시급한 리더십 성향">
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">설명</label>
-                    <textarea id="high_description" rows="3"
-                              class="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                              placeholder="리더십에서 잠재적 위험 요소가 높아 즉각적인 개선이 필요합니다."></textarea>
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">권장사항</label>
-                    <textarea id="high_advice" rows="3"
-                              class="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                              placeholder="전문적인 리더십 코칭이나 교육을 받으시기를 권장합니다."></textarea>
-                  </div>
-                </div>
-                <div class="bg-red-50 rounded-lg p-4">
-                  <h6 class="font-medium text-red-800 mb-2">미리보기</h6>
-                  <div id="high_preview" class="text-sm">
-                    <h6 class="font-semibold text-red-600">개선이 시급한 리더십 성향</h6>
-                    <p class="mt-1">내용을 입력해주세요</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <button onclick="saveOverallInterpretations()" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 px-4 rounded-lg">
-              <i class="fas fa-save mr-2"></i>종합 해석 모두 저장
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    let currentDimension = 'narcissism';
-
-    // 페이지 로드 시 인증 확인 및 초기화
-    document.addEventListener('DOMContentLoaded', function() {
-      // 인증 확인
-      const savedAdmin = localStorage.getItem('currentAdmin');
-      if (!savedAdmin) {
-        alert('로그인이 필요합니다.');
-        window.location.href = 'index.html';
-        return;
-      }
-      const currentAdmin = JSON.parse(savedAdmin);
-      document.getElementById('adminWelcome').textContent = `${currentAdmin.name}님 환영합니다`;
-      
-      // 초기화
-      updateDateTime();
-      setInterval(updateDateTime, 60000);
-      loadFeedbackData();
-      setupEventListeners();
-    });
-
-    // 이벤트 리스너 설정
-    function setupEventListeners() {
-      // 폼 제출 이벤트
-      document.getElementById('narcissismFeedbackForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        saveDimensionFeedback('narcissism');
-      });
-
-      document.getElementById('machiavellianismFeedbackForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        saveDimensionFeedback('machiavellianism');
-      });
-
-      document.getElementById('psychopathyFeedbackForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        saveDimensionFeedback('psychopathy');
-      });
-
-      // 실시간 미리보기 이벤트
-      setupRealtimePreview();
-    }
-
-    // 실시간 미리보기 설정
-    function setupRealtimePreview() {
-      const dimensions = ['narcissism', 'machiavellianism', 'psychopathy'];
-      const fields = ['name', 'shortDesc', 'description', 'positiveAspects', 'risks', 'developmentTips'];
-      
-      dimensions.forEach(dimension => {
-        fields.forEach(field => {
-          const element = document.getElementById(`${dimension}_${field}`);
-          if (element) {
-            element.addEventListener('input', () => updatePreview(dimension));
-          }
-        });
-      });
-
-      // 종합 해석 미리보기
-      const overallFields = ['veryLow_title', 'veryLow_description', 'veryLow_advice',
-                            'low_title', 'low_description', 'low_advice',
-                            'moderate_title', 'moderate_description', 'moderate_advice',
-                            'high_title', 'high_description', 'high_advice'];
-      
-      overallFields.forEach(fieldId => {
-        const element = document.getElementById(fieldId);
-        if (element) {
-          element.addEventListener('input', () => updateOverallPreview());
-        }
-      });
-    }
-
-    // 현재 시간 업데이트
-    function updateDateTime() {
-      const now = new Date();
-      const dateTimeString = now.toLocaleString('ko-KR');
-      document.getElementById('currentDateTime').textContent = dateTimeString;
-    }
-
-    // 로그아웃
-    function logout() {
-      if (confirm('로그아웃 하시겠습니까?')) {
-        localStorage.removeItem('currentAdmin');
-        window.location.href = 'index.html';
-      }
-    }
-
-    // 피드백 데이터 로드
-    function loadFeedbackData() {
-      const customFeedback = JSON.parse(localStorage.getItem('customFeedback') || '{}');
-      
-      if (Object.keys(customFeedback).length === 0) {
-        initializeDefaultFeedback();
-        return;
-      }
-      
-      // 각 차원별 데이터 로드
-      loadDimensionFeedbackData('narcissism', customFeedback.narcissism);
-      loadDimensionFeedbackData('machiavellianism', customFeedback.machiavellianism);
-      loadDimensionFeedbackData('psychopathy', customFeedback.psychopathy);
-      loadOverallInterpretationData(customFeedback.overall);
-      
-      // 초기 미리보기 업데이트
-      updatePreview('narcissism');
-    }
-
-    // 기본 피드백 초기화
-    function initializeDefaultFeedback() {
-      const defaultFeedback = {
-        narcissism: {
-          name: "나르시시즘",
-          shortDesc: "자기중심적 사고와 우월감",
-          description: "자신에 대한 과도한 자신감과 우월감, 타인의 칭찬과 인정에 대한 강한 욕구를 나타냅니다.",
-          positiveAspects: ["강한 자신감과 추진력", "도전적인 목표 설정", "카리스마 있는 리더십"],
-          risks: ["팀원의 의견 무시", "현실 인식 부족", "비판에 대한 과민반응"],
-          developmentTips: ["공감 능력 개발하기", "팀원의 피드백을 적극적으로 듣기", "겸손함 연습하기"]
-        },
-        machiavellianism: {
-          name: "마키아벨리즘",
-          shortDesc: "목적을 위한 수단 정당화",
-          description: "목표 달성을 위해 수단과 방법을 가리지 않으며, 타인을 조작하거나 이용하는 경향을 나타냅니다.",
-          positiveAspects: ["전략적 사고 능력", "협상력과 설득력", "현실적인 판단력"],
-          risks: ["팀원과의 신뢰 관계 손상", "단기적 성과에 치중", "윤리적 딜레마 발생"],
-          developmentTips: ["투명하고 정직한 커뮤니케이션", "윤리적 기준 설정하기", "장기적 관계 중시하기"]
-        },
-        psychopathy: {
-          name: "사이코패시",
-          shortDesc: "감정적 냉담함과 충동성",
-          description: "타인에 대한 공감 부족, 감정적 냉담함, 그리고 충동적인 행동 경향을 나타냅니다.",
-          positiveAspects: ["압박 상황에서의 냉정함", "빠른 의사결정 능력", "스트레스 저항력"],
-          risks: ["팀원과의 감정적 단절", "충동적인 의사결정", "윤리적 판단력 부족"],
-          developmentTips: ["공감 능력 개발하기", "팀원의 감정 상태 관찰하기", "의사결정 전 숙고하기"]
-        },
-        overall: {
-          veryLow: {
-            title: "건강한 리더십 성향",
-            description: "매우 건강하고 균형 잡힌 리더십 성향을 보이고 있습니다.",
-            advice: "현재의 균형 잡힌 리더십 스타일을 유지하면서, 지속적인 자기계발에 집중하세요."
-          },
-          low: {
-            title: "안정적인 리더십 성향",
-            description: "전반적으로 안정적이고 건강한 리더십 성향을 나타냅니다.",
-            advice: "현재의 긍정적인 리더십 특성을 더욱 발전시키고, 팀과의 소통에 더욱 집중하세요."
-          },
-          moderate: {
-            title: "주의가 필요한 리더십 성향",
-            description: "일부 영역에서 주의깊은 자기성찰과 개선이 필요합니다.",
-            advice: "자신의 리더십 스타일을 점검하고, 팀원들의 피드백을 적극적으로 수용하여 개선하세요."
-          },
-          high: {
-            title: "개선이 시급한 리더십 성향",
-            description: "리더십에서 잠재적 위험 요소가 높아 즉각적인 개선이 필요합니다.",
-            advice: "전문적인 리더십 코칭이나 교육을 통해 건강한 리더십 스타일로 전환하는 것을 강력히 권장합니다."
-          }
-        }
-      };
-      
-      localStorage.setItem('customFeedback', JSON.stringify(defaultFeedback));
-      loadFeedbackData();
-    }
-
-    // 차원별 피드백 데이터 로드
-    function loadDimensionFeedbackData(dimension, data) {
-      if (!data) return;
-      
-      document.getElementById(`${dimension}_name`).value = data.name || '';
-      document.getElementById(`${dimension}_shortDesc`).value = data.shortDesc || '';
-      document.getElementById(`${dimension}_description`).value = data.description || '';
-      document.getElementById(`${dimension}_positiveAspects`).value = data.positiveAspects ? data.positiveAspects.join('\n') : '';
-      document.getElementById(`${dimension}_risks`).value = data.risks ? data.risks.join('\n') : '';
-      document.getElementById(`${dimension}_developmentTips`).value = data.developmentTips ? data.developmentTips.join('\n') : '';
-    }
-
-    // 종합 해석 데이터 로드
-    function loadOverallInterpretationData(data) {
-      if (!data) return;
-      
-      const levels = ['veryLow', 'low', 'moderate', 'high'];
-      levels.forEach(level => {
-        if (data[level]) {
-          document.getElementById(`${level}_title`).value = data[level].title || '';
-          document.getElementById(`${level}_description`).value = data[level].description || '';
-          document.getElementById(`${level}_advice`).value = data[level].advice || '';
-        }
-      });
-    }
-
-    // 차원 피드백 표시
-    function showDimensionFeedback(dimension) {
-      currentDimension = dimension;
-      
-      // 탭 활성화 상태 변경
-      document.querySelectorAll('.dimension-tab').forEach(tab => {
-        tab.classList.remove('active', 'border-blue-500', 'text-blue-600');
-        tab.classList.add('border-transparent', 'text-gray-500');
-      });
-      
-      const activeTab = document.querySelector(`[data-dimension="${dimension}"]`);
-      activeTab.classList.add('active', 'border-blue-500', 'text-blue-600');
-      activeTab.classList.remove('border-transparent', 'text-gray-500');
-      
-      // 콘텐츠 표시/숨김
-      document.querySelectorAll('.dimension-content').forEach(content => {
-        content.classList.add('hidden');
-      });
-      
-      document.getElementById(`${dimension}Feedback`).classList.remove('hidden');
-      
-      // 미리보기 업데이트
-      if (dimension === 'overall') {
-        updateOverallPreview();
-      } else {
-        updatePreview(dimension);
-      }
-    }
-
-    // 차원별 미리보기 업데이트
-    function updatePreview(dimension) {
-      const name = document.getElementById(`${dimension}_name`).value || '차원명';
-      const shortDesc = document.getElementById(`${dimension}_shortDesc`).value || '간단 설명';
-      const description = document.getElementById(`${dimension}_description`).value || '상세 설명을 입력해주세요';
-      const positiveAspects = document.getElementById(`${dimension}_positiveAspects`).value.split('\n').filter(item => item.trim());
-      const risks = document.getElementById(`${dimension}_risks`).value.split('\n').filter(item => item.trim());
-      const developmentTips = document.getElementById(`${dimension}_developmentTips`).value.split('\n').filter(item => item.trim());
-      
-      const preview = document.getElementById(`${dimension}Preview`);
-      const colorMap = {
-        narcissism: 'red',
-        machiavellianism: 'orange',
-        psychopathy: 'teal'
-      };
-      const color = colorMap[dimension];
-      
-      preview.innerHTML = `
-        <h6 class="font-semibold text-${color}-600 text-lg mb-2">${name}</h6>
-        <p class="text-sm text-gray-600 mb-3">${shortDesc}</p>
-        <p class="text-sm mb-4">${description}</p>
-        
-        <div class="grid grid-cols-1 gap-4">
-          <div>
-            <h6 class="font-medium text-green-700 mb-2">긍정적 측면</h6>
-            <ul class="text-sm space-y-1">
-              ${positiveAspects.length > 0 ? positiveAspects.map(aspect => `<li>• ${aspect}</li>`).join('') : '<li>내용을 입력해주세요</li>'}
-            </ul>
-          </div>
-          
-          <div>
-            <h6 class="font-medium text-red-700 mb-2">주의사항</h6>
-            <ul class="text-sm space-y-1">
-              ${risks.length > 0 ? risks.map(risk => `<li>• ${risk}</li>`).join('') : '<li>내용을 입력해주세요</li>'}
-            </ul>
-          </div>
-          
-          <div>
-            <h6 class="font-medium text-blue-700 mb-2">개발 팁</h6>
-            <ul class="text-sm space-y-1">
-              ${developmentTips.length > 0 ? developmentTips.map(tip => `<li>• ${tip}</li>`).join('') : '<li>내용을 입력해주세요</li>'}
-            </ul>
-          </div>
-        </div>
-      `;
-    }
-
-    // 종합 해석 미리보기 업데이트
-    function updateOverallPreview() {
-      const levels = [
-        { id: 'veryLow', color: 'green' },
-        { id: 'low', color: 'blue' },
-        { id: 'moderate', color: 'yellow' },
-        { id: 'high', color: 'red' }
-      ];
-
-      levels.forEach(level => {
-        const title = document.getElementById(`${level.id}_title`).value || '제목을 입력해주세요';
-        const description = document.getElementById(`${level.id}_description`).value || '설명을 입력해주세요';
-        const advice = document.getElementById(`${level.id}_advice`).value || '권장사항을 입력해주세요';
-        
-        const preview = document.getElementById(`${level.id}_preview`);
-        preview.innerHTML = `
-          <h6 class="font-semibold text-${level.color}-600">${title}</h6>
-          <p class="mt-1 text-sm">${description}</p>
-          <p class="mt-2 text-xs text-${level.color}-700"><strong>권장사항:</strong> ${advice}</p>
-        `;
-      });
-    }
-
-    // 차원별 피드백 저장
-    function saveDimensionFeedback(dimension) {
-      const customFeedback = JSON.parse(localStorage.getItem('customFeedback') || '{}');
-      
-      const feedbackData = {
-        name: document.getElementById(`${dimension}_name`).value,
-        shortDesc: document.getElementById(`${dimension}_shortDesc`).value,
-        description: document.getElementById(`${dimension}_description`).value,
-        positiveAspects: document.getElementById(`${dimension}_positiveAspects`).value.split('\n').filter(item => item.trim()),
-        risks: document.getElementById(`${dimension}_risks`).value.split('\n').filter(item => item.trim()),
-        developmentTips: document.getElementById(`${dimension}_developmentTips`).value.split('\n').filter(item => item.trim())
-      };
-      
-      customFeedback[dimension] = feedbackData;
-      localStorage.setItem('customFeedback', JSON.stringify(customFeedback));
-      
-      alert(`${feedbackData.name} 피드백이 저장되었습니다.`);
-    }
-
-    // 종합 해석 저장
-    function saveOverallInterpretations() {
-      const customFeedback = JSON.parse(localStorage.getItem('customFeedback') || '{}');
-      
-      const overallData = {
-        veryLow: {
-          title: document.getElementById('veryLow_title').value,
-          description: document.getElementById('veryLow_description').value,
-          advice: document.getElementById('veryLow_advice').value
-        },
-        low: {
-          title: document.getElementById('low_title').value,
-          description: document.getElementById('low_description').value,
-          advice: document.getElementById('low_advice').value
-        },
-        moderate: {
-          title: document.getElementById('moderate_title').value,
-          description: document.getElementById('moderate_description').value,
-          advice: document.getElementById('moderate_advice').value
-        },
-        high: {
-          title: document.getElementById('high_title').value,
-          description: document.getElementById('high_description').value,
-          advice: document.getElementById('high_advice').value
-        }
-      };
-      
-      customFeedback.overall = overallData;
-      localStorage.setItem('customFeedback', JSON.stringify(customFeedback));
-      
-      alert('종합 해석이 모두 저장되었습니다.');
-    }
-
-    // 기본값으로 복원
-    function resetToDefaults() {
-      if (confirm('모든 피드백 내용을 기본값으로 복원하시겠습니까?\n현재 편집 중인 내용이 모두 사라집니다.')) {
-        localStorage.removeItem('customFeedback');
-        initializeDefaultFeedback();
-        alert('기본값으로 복원되었습니다.');
-      }
-    }
-
-    // 키보드 단축키
-    document.addEventListener('keydown', function(e) {
-      // Ctrl+S로 현재 차원 저장
-      if (e.ctrlKey && e.key === 's') {
-        e.preventDefault();
-        if (currentDimension === 'overall') {
-          saveOverallInterpretations();
-        } else {
-          saveDimensionFeedback(currentDimension);
-        }
-      }
-      
-      // 탭 키로 차원 전환
-      if (e.key === 'Tab' && e.altKey) {
-        e.preventDefault();
-        const dimensions = ['narcissism', 'machiavellianism', 'psychopathy', 'overall'];
-        const currentIndex = dimensions.indexOf(currentDimension);
-        const nextIndex = (currentIndex + 1) % dimensions.length;
-        showDimensionFeedback(dimensions[nextIndex]);
-      }
-    });
-  </script>
-</body>
-</html><!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
@@ -646,63 +21,98 @@
       background-color: rgba(255, 255, 255, 0.2);
       border-left: 4px solid #fff;
     }
-    .dimension-tab.active {
-      border-color: #3B82F6 !important;
-      color: #3B82F6 !important;
+    
+    /* 모바일에서 사이드바 숨기기 */
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+      }
+      .sidebar.mobile-open {
+        transform: translateX(0);
+      }
+      .main-content {
+        margin-left: 0 !important;
+      }
+      .mobile-overlay {
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(2px);
+      }
     }
-    .dimension-tab {
-      border-color: transparent !important;
-      color: #6B7280 !important;
-      transition: all 0.2s ease;
+    
+    /* 텍스트 영역 자동 크기 조절 */
+    .auto-resize {
+      resize: vertical;
+      min-height: 120px;
+      max-height: 400px;
     }
-    .dimension-tab:hover {
-      color: #374151 !important;
+    
+    /* 카드 그림자 효과 */
+    .card-shadow {
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      transition: box-shadow 0.3s ease;
     }
-    .dimension-content {
-      animation: fadeIn 0.3s ease-in;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
+    .card-shadow:hover {
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
     }
   </style>
 </head>
-<body class="bg-gray-100">
+<body class="bg-gray-50">
+  
+  <!-- Mobile Menu Overlay -->
+  <div id="mobileOverlay" class="fixed inset-0 mobile-overlay z-40 hidden md:hidden"></div>
   
   <!-- Navigation Sidebar -->
-  <div class="fixed inset-y-0 left-0 w-64 bg-gray-800 text-white">
-    <div class="p-6">
-      <h1 class="text-xl font-bold">관리자 대시보드</h1>
-      <p class="text-gray-400 text-sm" id="adminWelcome">환영합니다</p>
+  <div id="sidebar" class="sidebar fixed inset-y-0 left-0 w-64 bg-gray-800 text-white z-50">
+    <div class="p-4 md:p-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-lg md:text-xl font-bold">관리자 대시보드</h1>
+          <p class="text-gray-400 text-xs md:text-sm" id="adminWelcome">관리자님 환영합니다</p>
+        </div>
+        <button id="closeSidebar" class="md:hidden text-white hover:text-gray-300">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
     </div>
     
-    <nav class="mt-8">
-      <a href="dashboard.html" class="nav-item flex items-center px-6 py-3 text-gray-300 hover:text-white">
-        <i class="fas fa-tachometer-alt mr-3"></i>대시보드
+    <nav class="mt-4 md:mt-8">
+      <a href="dashboard.html" class="nav-item flex items-center px-4 md:px-6 py-3 text-gray-300 hover:text-white">
+        <i class="fas fa-tachometer-alt mr-3"></i>
+        <span class="text-sm md:text-base">대시보드</span>
       </a>
-      <a href="participants.html" class="nav-item flex items-center px-6 py-3 text-gray-300 hover:text-white">
-        <i class="fas fa-users mr-3"></i>참여자 관리
+      <a href="participants.html" class="nav-item flex items-center px-4 md:px-6 py-3 text-gray-300 hover:text-white">
+        <i class="fas fa-users mr-3"></i>
+        <span class="text-sm md:text-base">참여자 관리</span>
       </a>
-      <a href="feedback.html" class="nav-item active flex items-center px-6 py-3 text-gray-300 hover:text-white">
-        <i class="fas fa-edit mr-3"></i>피드백 편집
+      <a href="feedback.html" class="nav-item active flex items-center px-4 md:px-6 py-3 text-gray-300 hover:text-white">
+        <i class="fas fa-edit mr-3"></i>
+        <span class="text-sm md:text-base">피드백 편집</span>
       </a>
-      <a href="#" class="nav-item flex items-center px-6 py-3 text-gray-300 hover:text-white" onclick="logout()">
-        <i class="fas fa-sign-out-alt mr-3"></i>로그아웃
+      <a href="#" class="nav-item flex items-center px-4 md:px-6 py-3 text-gray-300 hover:text-white" onclick="logout()">
+        <i class="fas fa-sign-out-alt mr-3"></i>
+        <span class="text-sm md:text-base">로그아웃</span>
       </a>
     </nav>
   </div>
 
-  <!-- Main Content -->
-  <div class="ml-64 min-h-screen bg-gray-100">
+  <!-- Main Content Area -->
+  <div class="main-content ml-0 md:ml-64 min-h-screen">
     <!-- Header -->
-    <header class="bg-white shadow-sm border-b border-gray-200">
-      <div class="px-6 py-4">
+    <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30">
+      <div class="px-4 md:px-6 py-3 md:py-4">
         <div class="flex items-center justify-between">
-          <h2 class="text-2xl font-semibold text-gray-800">피드백 편집</h2>
-          <div class="flex items-center space-x-4">
-            <div class="text-sm text-gray-600" id="currentDateTime"></div>
-            <button onclick="resetToDefaults()" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm">
-              <i class="fas fa-undo mr-1"></i>기본값 복원
+          <div class="flex items-center">
+            <button id="mobileMenuBtn" class="md:hidden mr-3 text-gray-600 hover:text-gray-800">
+              <i class="fas fa-bars text-xl"></i>
+            </button>
+            <h2 class="text-lg md:text-2xl font-semibold text-gray-800">피드백 편집</h2>
+          </div>
+          <div class="flex items-center space-x-2 md:space-x-4">
+            <div class="hidden md:block text-sm text-gray-600" id="currentDateTime"></div>
+            <button onclick="logout()" class="bg-red-600 hover:bg-red-700 text-white px-2 md:px-4 py-1 md:py-2 rounded-lg text-xs md:text-sm">
+              <i class="fas fa-sign-out-alt mr-1"></i>
+              <span class="hidden md:inline">로그아웃</span>
             </button>
           </div>
         </div>
@@ -710,220 +120,344 @@
     </header>
 
     <!-- Content -->
-    <div class="p-6">
-      <!-- Introduction -->
-      <div class="bg-white rounded-lg shadow p-6 mb-6">
-        <h3 class="text-lg font-semibold mb-4">피드백 편집 안내</h3>
-        <div class="bg-blue-50 rounded-lg p-4">
-          <p class="text-blue-700 text-sm">
-            <i class="fas fa-info-circle mr-2"></i>
-            여기서 수정한 피드백 내용은 진단 결과 페이지에 실시간으로 반영됩니다. 
-            변경사항은 자동으로 저장되며, 모든 새로운 진단 결과에 적용됩니다.
-          </p>
+    <div class="p-4 md:p-6">
+      
+      <!-- Success Message -->
+      <div id="successMessage" class="hidden bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4 card-shadow">
+        <div class="flex items-center">
+          <i class="fas fa-check-circle mr-2"></i>
+          <span>피드백이 성공적으로 저장되었습니다!</span>
         </div>
       </div>
 
-      <!-- Dimension Selection Tabs -->
-      <div class="bg-white rounded-lg shadow mb-6">
-        <div class="border-b border-gray-200">
-          <nav class="-mb-px flex space-x-8 px-6">
-            <button onclick="showDimensionFeedback('narcissism')" 
-                    class="dimension-tab py-4 px-1 border-b-2 font-medium text-sm active"
-                    data-dimension="narcissism">
-              <i class="fas fa-crown mr-2"></i>나르시시즘
-            </button>
-            <button onclick="showDimensionFeedback('machiavellianism')" 
-                    class="dimension-tab py-4 px-1 border-b-2 font-medium text-sm"
-                    data-dimension="machiavellianism">
-              <i class="fas fa-chess mr-2"></i>마키아벨리즘
-            </button>
-            <button onclick="showDimensionFeedback('psychopathy')" 
-                    class="dimension-tab py-4 px-1 border-b-2 font-medium text-sm"
-                    data-dimension="psychopathy">
-              <i class="fas fa-mask mr-2"></i>사이코패시
-            </button>
-            <button onclick="showDimensionFeedback('overall')" 
-                    class="dimension-tab py-4 px-1 border-b-2 font-medium text-sm"
-                    data-dimension="overall">
-              <i class="fas fa-chart-line mr-2"></i>종합 해석
-            </button>
-          </nav>
+      <!-- 건강한 리더십 성향 카드 -->
+      <div class="bg-white rounded-lg shadow-sm p-4 md:p-6 mb-6 card-shadow">
+        <div class="flex items-center mb-4">
+          <div class="bg-green-100 p-2 rounded-lg mr-3">
+            <i class="fas fa-leaf text-green-600 text-lg md:text-xl"></i>
+          </div>
+          <h3 class="text-lg md:text-xl font-semibold text-gray-800">건강한 리더십 성향</h3>
         </div>
-
-        <!-- Narcissism Feedback Editor -->
-        <div id="narcissismFeedback" class="dimension-content p-6">
-          <h4 class="text-xl font-semibold mb-6 text-red-600">
-            <i class="fas fa-crown mr-2"></i>나르시시즘 피드백 편집
-          </h4>
+        
+        <div class="bg-green-50 border border-green-200 rounded-lg p-3 md:p-4 mb-4">
+          <p class="text-sm md:text-base text-green-800">매우 건강하고 균형 잡힌 리더십 성향을 보이고 있습니다.</p>
+        </div>
+        
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              <i class="fas fa-bullseye mr-1 text-green-600"></i>강점
+            </label>
+            <textarea id="healthyStrengths" 
+                      class="auto-resize w-full px-3 py-2 text-sm md:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      placeholder="건강한 리더십의 강점을 입력하세요...">정직하고 윤리적인 리더십을 발휘하여 팀원들의 신뢰를 얻고 있습니다. 의사결정 시 타인을 배려하며, 지속적인 자기개발에 집중하고 있습니다.</textarea>
+          </div>
           
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <!-- Editor -->
-            <div>
-              <form id="narcissismFeedbackForm" class="space-y-6">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">차원 이름</label>
-                  <input type="text" id="narcissism_name" 
-                         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                         placeholder="나르시시즘">
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">간단한 설명</label>
-                  <input type="text" id="narcissism_shortDesc" 
-                         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                         placeholder="자기중심적 사고와 우월감">
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">상세 설명</label>
-                  <textarea id="narcissism_description" rows="3"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                            placeholder="이 차원에 대한 상세한 설명을 입력하세요..."></textarea>
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">긍정적 측면 (한 줄당 하나씩)</label>
-                  <textarea id="narcissism_positiveAspects" rows="4"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                            placeholder="강한 자신감과 추진력&#10;도전적인 목표 설정&#10;카리스마 있는 리더십"></textarea>
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">주의사항 (한 줄당 하나씩)</label>
-                  <textarea id="narcissism_risks" rows="4"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                            placeholder="팀원의 의견 무시&#10;현실 인식 부족&#10;비판에 대한 과민반응"></textarea>
-                </div>
-
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">개발 팁 (한 줄당 하나씩)</label>
-                  <textarea id="narcissism_developmentTips" rows="5"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                            placeholder="공감 능력 개발하기&#10;팀원의 피드백을 적극적으로 듣기&#10;겸손함 연습하기"></textarea>
-                </div>
-
-                <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg">
-                  <i class="fas fa-save mr-2"></i>나르시시즘 피드백 저장
-                </button>
-              </form>
-            </div>
-
-            <!-- Preview -->
-            <div class="bg-gray-50 rounded-lg p-6">
-              <h5 class="text-lg font-semibold mb-4">실시간 미리보기</h5>
-              <div id="narcissismPreview" class="bg-white rounded-lg p-4 border">
-                <h6 class="font-semibold text-red-600 text-lg mb-2">나르시시즘</h6>
-                <p class="text-sm text-gray-600 mb-3">자기중심적 사고와 우월감</p>
-                <p class="text-sm mb-4">미리보기를 위해 내용을 입력해주세요.</p>
-                
-                <div class="grid grid-cols-1 gap-4">
-                  <div>
-                    <h6 class="font-medium text-green-700 mb-2">긍정적 측면</h6>
-                    <ul class="text-sm space-y-1" id="narcissism_preview_positive">
-                      <li>내용을 입력해주세요</li>
-                    </ul>
-                  </div>
-                  
-                  <div>
-                    <h6 class="font-medium text-red-700 mb-2">주의사항</h6>
-                    <ul class="text-sm space-y-1" id="narcissism_preview_risks">
-                      <li>내용을 입력해주세요</li>
-                    </ul>
-                  </div>
-                  
-                  <div>
-                    <h6 class="font-medium text-blue-700 mb-2">개발 팁</h6>
-                    <ul class="text-sm space-y-1" id="narcissism_preview_tips">
-                      <li>내용을 입력해주세요</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              <i class="fas fa-lightbulb mr-1 text-green-600"></i>권장사항
+            </label>
+            <textarea id="healthyRecommendations" 
+                      class="auto-resize w-full px-3 py-2 text-sm md:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                      placeholder="권장사항을 입력하세요...">현재의 균형 잡힌 리더십 스타일을 유지하면서, 지속적인 자기개발에 집중하세요.</textarea>
           </div>
         </div>
+      </div>
 
-        <!-- Machiavellianism Feedback Editor -->
-        <div id="machiavellianismFeedback" class="dimension-content p-6 hidden">
-          <h4 class="text-xl font-semibold mb-6 text-orange-600">
-            <i class="fas fa-chess mr-2"></i>마키아벨리즘 피드백 편집
-          </h4>
+      <!-- 종합 해석 카드 -->
+      <div class="bg-white rounded-lg shadow-sm p-4 md:p-6 mb-6 card-shadow">
+        <div class="flex items-center mb-4">
+          <div class="bg-blue-100 p-2 rounded-lg mr-3">
+            <i class="fas fa-chart-line text-blue-600 text-lg md:text-xl"></i>
+          </div>
+          <h3 class="text-lg md:text-xl font-semibold text-gray-800">종합 해석</h3>
+        </div>
+        
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              <i class="fas fa-clipboard-list mr-1 text-blue-600"></i>전체 분석 내용
+            </label>
+            <textarea id="comprehensiveAnalysis" 
+                      class="auto-resize w-full px-3 py-2 text-sm md:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      rows="8"
+                      placeholder="종합적인 분석 내용을 입력하세요...">이 진단 결과는 귀하의 리더십 성향을 다크 트라이어드(Dark Triad) 관점에서 분석한 것입니다.
+
+다크 트라이어드는 나르시시즘(Narcissism), 마키아벨리즘(Machiavellianism), 사이코패시(Psychopathy) 세 가지 성격 특성을 의미합니다. 이러한 특성들은 적절한 수준에서는 리더십에 도움이 될 수 있지만, 과도할 경우 조직과 개인에게 부정적인 영향을 미칠 수 있습니다.
+
+귀하의 진단 결과에 따르면, 전반적으로 건강하고 균형 잡힌 리더십 성향을 보이고 있습니다. 이는 매우 긍정적인 결과로, 현재의 리더십 스타일을 유지하면서 지속적인 성장을 추구하는 것이 좋겠습니다.
+
+앞으로도 윤리적 리더십과 팀원들과의 신뢰 관계 구축에 지속적으로 노력하시기 바랍니다.</textarea>
+          </div>
           
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <!-- Editor -->
-            <div>
-              <form id="machiavellianismFeedbackForm" class="space-y-6">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">차원 이름</label>
-                  <input type="text" id="machiavellianism_name" 
-                         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                         placeholder="마키아벨리즘">
-                </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              <i class="fas fa-route mr-1 text-blue-600"></i>발전 방향
+            </label>
+            <textarea id="developmentDirection" 
+                      class="auto-resize w-full px-3 py-2 text-sm md:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="발전 방향을 입력하세요...">1. 현재의 윤리적 리더십 스타일 유지
+2. 팀원들과의 소통 강화
+3. 지속적인 피드백 수집 및 반영
+4. 리더십 역량 개발을 위한 교육 참여
+5. 멘토링 및 코칭 활동 참여</textarea>
+          </div>
+        </div>
+      </div>
 
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">간단한 설명</label>
-                  <input type="text" id="machiavellianism_shortDesc" 
-                         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                         placeholder="목적을 위한 수단 정당화">
-                </div>
+      <!-- 안정적인 리더십 성향 카드 -->
+      <div class="bg-white rounded-lg shadow-sm p-4 md:p-6 mb-6 card-shadow">
+        <div class="flex items-center mb-4">
+          <div class="bg-purple-100 p-2 rounded-lg mr-3">
+            <i class="fas fa-shield-alt text-purple-600 text-lg md:text-xl"></i>
+          </div>
+          <h3 class="text-lg md:text-xl font-semibold text-gray-800">안정적인 리더십 성향</h3>
+        </div>
+        
+        <div class="bg-purple-50 border border-purple-200 rounded-lg p-3 md:p-4 mb-4">
+          <p class="text-sm md:text-base text-purple-800">전반적으로 안정적이고 건강한 리더십 성향을 나타냅니다.</p>
+        </div>
+        
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              <i class="fas fa-star mr-1 text-purple-600"></i>특징
+            </label>
+            <textarea id="stableCharacteristics" 
+                      class="auto-resize w-full px-3 py-2 text-sm md:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      placeholder="안정적인 리더십의 특징을 입력하세요...">균형잡힌 의사결정 능력과 팀원들에 대한 배려를 보여줍니다. 윤리적 기준을 유지하면서도 목표 달성을 위해 노력하는 모습을 보입니다.</textarea>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              <i class="fas fa-arrow-up mr-1 text-purple-600"></i>개선 방향
+            </label>
+            <textarea id="stableImprovements" 
+                      class="auto-resize w-full px-3 py-2 text-sm md:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      placeholder="개선 방향을 입력하세요...">현재의 긍정적인 리더십 특성을 더욱 발전시키고, 팀의 소통을 더욱 강화하세요.</textarea>
+          </div>
+        </div>
+      </div>
 
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">상세 설명</label>
-                  <textarea id="machiavellianism_description" rows="3"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                            placeholder="이 차원에 대한 상세한 설명을 입력하세요..."></textarea>
-                </div>
+      <!-- 저장 버튼 -->
+      <div class="flex flex-col md:flex-row gap-3 md:gap-4">
+        <button onclick="saveFeedback()" 
+                class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center">
+          <i class="fas fa-save mr-2"></i>피드백 저장
+        </button>
+        <button onclick="previewFeedback()" 
+                class="flex-1 bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center">
+          <i class="fas fa-eye mr-2"></i>미리보기
+        </button>
+        <button onclick="resetFeedback()" 
+                class="flex-1 bg-gray-600 hover:bg-gray-700 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center">
+          <i class="fas fa-undo mr-2"></i>초기화
+        </button>
+      </div>
+    </div>
+  </div>
 
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">긍정적 측면 (한 줄당 하나씩)</label>
-                  <textarea id="machiavellianism_positiveAspects" rows="4"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                            placeholder="전략적 사고 능력&#10;협상력과 설득력&#10;현실적인 판단력"></textarea>
-                </div>
+  <!-- Preview Modal -->
+  <div id="previewModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4">
+    <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+      <div class="p-4 md:p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg md:text-xl font-semibold">피드백 미리보기</h3>
+          <button onclick="closePreview()" class="text-gray-500 hover:text-gray-700">
+            <i class="fas fa-times text-xl"></i>
+          </button>
+        </div>
+        <div id="previewContent" class="space-y-4 text-sm md:text-base">
+          <!-- 미리보기 내용이 여기에 표시됩니다 -->
+        </div>
+      </div>
+    </div>
+  </div>
 
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">주의사항 (한 줄당 하나씩)</label>
-                  <textarea id="machiavellianism_risks" rows="4"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                            placeholder="팀원과의 신뢰 관계 손상&#10;단기적 성과에 치중&#10;윤리적 딜레마 발생"></textarea>
-                </div>
+  <script>
+    // 인증 확인
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof window.AdminAuth !== 'undefined') {
+        window.AdminAuth.checkAuth();
+      }
+      
+      updateDateTime();
+      setInterval(updateDateTime, 60000);
+      loadSavedFeedback();
+      setupMobileMenu();
+      setupAutoResize();
+    });
 
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-2">개발 팁 (한 줄당 하나씩)</label>
-                  <textarea id="machiavellianism_developmentTips" rows="5"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                            placeholder="투명하고 정직한 커뮤니케이션&#10;윤리적 기준 설정하기&#10;장기적 관계 중시하기"></textarea>
-                </div>
+    // 모바일 메뉴 설정
+    function setupMobileMenu() {
+      const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('mobileOverlay');
+      const closeSidebar = document.getElementById('closeSidebar');
 
-                <button type="submit" class="w-full bg-orange-600 hover:bg-orange-700 text-white py-2 px-4 rounded-lg">
-                  <i class="fas fa-save mr-2"></i>마키아벨리즘 피드백 저장
-                </button>
-              </form>
-            </div>
+      mobileMenuBtn.addEventListener('click', function() {
+        sidebar.classList.add('mobile-open');
+        overlay.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+      });
 
-            <!-- Preview -->
-            <div class="bg-gray-50 rounded-lg p-6">
-              <h5 class="text-lg font-semibold mb-4">실시간 미리보기</h5>
-              <div id="machiavellianismPreview" class="bg-white rounded-lg p-4 border">
-                <h6 class="font-semibold text-orange-600 text-lg mb-2">마키아벨리즘</h6>
-                <p class="text-sm text-gray-600 mb-3">목적을 위한 수단 정당화</p>
-                <p class="text-sm mb-4">미리보기를 위해 내용을 입력해주세요.</p>
-                
-                <div class="grid grid-cols-1 gap-4">
-                  <div>
-                    <h6 class="font-medium text-green-700 mb-2">긍정적 측면</h6>
-                    <ul class="text-sm space-y-1" id="machiavellianism_preview_positive">
-                      <li>내용을 입력해주세요</li>
-                    </ul>
-                  </div>
-                  
-                  <div>
-                    <h6 class="font-medium text-red-700 mb-2">주의사항</h6>
-                    <ul class="text-sm space-y-1" id="machiavellianism_preview_risks">
-                      <li>내용을 입력해주세요</li>
-                    </ul>
-                  </div>
-                  
-                  <div>
-                    <h6 class="font-medium text-blue-700 mb-2">개발 팁</h6>
-                    <ul class="text
+      function closeMobileMenu() {
+        sidebar.classList.remove('mobile-open');
+        overlay.classList.add('hidden');
+        document.body.style.overflow = '';
+      }
+
+      closeSidebar.addEventListener('click', closeMobileMenu);
+      overlay.addEventListener('click', closeMobileMenu);
+    }
+
+    // 텍스트 영역 자동 크기 조절
+    function setupAutoResize() {
+      const textareas = document.querySelectorAll('.auto-resize');
+      textareas.forEach(textarea => {
+        textarea.addEventListener('input', function() {
+          this.style.height = 'auto';
+          this.style.height = Math.min(this.scrollHeight, 400) + 'px';
+        });
+        
+        // 초기 크기 설정
+        textarea.style.height = 'auto';
+        textarea.style.height = Math.min(textarea.scrollHeight, 400) + 'px';
+      });
+    }
+
+    // 현재 시간 업데이트
+    function updateDateTime() {
+      const now = new Date();
+      const dateTimeString = now.toLocaleString('ko-KR');
+      const element = document.getElementById('currentDateTime');
+      if (element) {
+        element.textContent = dateTimeString;
+      }
+    }
+
+    // 저장된 피드백 불러오기
+    function loadSavedFeedback() {
+      const savedFeedback = localStorage.getItem('feedbackTemplates');
+      if (savedFeedback) {
+        const feedback = JSON.parse(savedFeedback);
+        document.getElementById('healthyStrengths').value = feedback.healthyStrengths || '';
+        document.getElementById('healthyRecommendations').value = feedback.healthyRecommendations || '';
+        document.getElementById('comprehensiveAnalysis').value = feedback.comprehensiveAnalysis || '';
+        document.getElementById('developmentDirection').value = feedback.developmentDirection || '';
+        document.getElementById('stableCharacteristics').value = feedback.stableCharacteristics || '';
+        document.getElementById('stableImprovements').value = feedback.stableImprovements || '';
+        
+        // 텍스트 영역 크기 재조정
+        setupAutoResize();
+      }
+    }
+
+    // 피드백 저장
+    function saveFeedback() {
+      const feedback = {
+        healthyStrengths: document.getElementById('healthyStrengths').value,
+        healthyRecommendations: document.getElementById('healthyRecommendations').value,
+        comprehensiveAnalysis: document.getElementById('comprehensiveAnalysis').value,
+        developmentDirection: document.getElementById('developmentDirection').value,
+        stableCharacteristics: document.getElementById('stableCharacteristics').value,
+        stableImprovements: document.getElementById('stableImprovements').value,
+        lastUpdated: new Date().toISOString()
+      };
+      
+      localStorage.setItem('feedbackTemplates', JSON.stringify(feedback));
+      
+      // 성공 메시지 표시
+      const successMessage = document.getElementById('successMessage');
+      successMessage.classList.remove('hidden');
+      setTimeout(() => {
+        successMessage.classList.add('hidden');
+      }, 3000);
+    }
+
+    // 피드백 미리보기
+    function previewFeedback() {
+      const previewContent = document.getElementById('previewContent');
+      const healthyStrengths = document.getElementById('healthyStrengths').value;
+      const healthyRecommendations = document.getElementById('healthyRecommendations').value;
+      const comprehensiveAnalysis = document.getElementById('comprehensiveAnalysis').value;
+      const developmentDirection = document.getElementById('developmentDirection').value;
+      const stableCharacteristics = document.getElementById('stableCharacteristics').value;
+      const stableImprovements = document.getElementById('stableImprovements').value;
+      
+      previewContent.innerHTML = `
+        <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+          <h4 class="font-semibold text-green-800 mb-2">건강한 리더십 성향</h4>
+          <div class="mb-3">
+            <strong>강점:</strong>
+            <p class="text-gray-700 mt-1">${healthyStrengths || '내용이 없습니다.'}</p>
+          </div>
+          <div>
+            <strong>권장사항:</strong>
+            <p class="text-gray-700 mt-1">${healthyRecommendations || '내용이 없습니다.'}</p>
+          </div>
+        </div>
+        
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+          <h4 class="font-semibold text-blue-800 mb-2">종합 해석</h4>
+          <div class="mb-3">
+            <strong>전체 분석:</strong>
+            <p class="text-gray-700 mt-1 whitespace-pre-wrap">${comprehensiveAnalysis || '내용이 없습니다.'}</p>
+          </div>
+          <div>
+            <strong>발전 방향:</strong>
+            <p class="text-gray-700 mt-1 whitespace-pre-wrap">${developmentDirection || '내용이 없습니다.'}</p>
+          </div>
+        </div>
+        
+        <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+          <h4 class="font-semibold text-purple-800 mb-2">안정적인 리더십 성향</h4>
+          <div class="mb-3">
+            <strong>특징:</strong>
+            <p class="text-gray-700 mt-1">${stableCharacteristics || '내용이 없습니다.'}</p>
+          </div>
+          <div>
+            <strong>개선 방향:</strong>
+            <p class="text-gray-700 mt-1">${stableImprovements || '내용이 없습니다.'}</p>
+          </div>
+        </div>
+      `;
+      
+      document.getElementById('previewModal').classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+
+    // 미리보기 닫기
+    function closePreview() {
+      document.getElementById('previewModal').classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+
+    // 피드백 초기화
+    function resetFeedback() {
+      if (confirm('모든 피드백 내용을 초기화하시겠습니까?')) {
+        document.getElementById('healthyStrengths').value = '';
+        document.getElementById('healthyRecommendations').value = '';
+        document.getElementById('comprehensiveAnalysis').value = '';
+        document.getElementById('developmentDirection').value = '';
+        document.getElementById('stableCharacteristics').value = '';
+        document.getElementById('stableImprovements').value = '';
+        
+        localStorage.removeItem('feedbackTemplates');
+        setupAutoResize();
+      }
+    }
+
+    // 로그아웃
+    function logout() {
+      if (confirm('로그아웃 하시겠습니까?')) {
+        if (typeof window.AdminAuth !== 'undefined') {
+          window.AdminAuth.logout();
+        } else {
+          window.location.href = 'index.html';
+        }
+      }
+    }
+  </script>
+</body>
+</html>
