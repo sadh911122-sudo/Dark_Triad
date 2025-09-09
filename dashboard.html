@@ -6,6 +6,7 @@
   <title>대시보드 - 리더십 진단 관리자</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="config.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
   <style>
@@ -22,45 +23,109 @@
       background-color: rgba(255, 255, 255, 0.2);
       border-left: 4px solid #fff;
     }
+    
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+      }
+      .sidebar.mobile-open {
+        transform: translateX(0);
+      }
+      .main-content {
+        margin-left: 0 !important;
+      }
+      .mobile-overlay {
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(2px);
+      }
+    }
+    
+    .stat-card {
+      transition: transform 0.2s ease;
+    }
+    .stat-card:hover {
+      transform: translateY(-2px);
+    }
+    
+    .loading-spinner {
+      border: 3px solid #f3f3f3;
+      border-radius: 50%;
+      border-top: 3px solid #3498db;
+      width: 20px;
+      height: 20px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
   </style>
-  <script src="auth.js"></script>
 </head>
 <body class="bg-gray-100">
   
+  <!-- Mobile Menu Overlay -->
+  <div id="mobileOverlay" class="fixed inset-0 mobile-overlay z-40 hidden md:hidden"></div>
+  
   <!-- Navigation Sidebar -->
-  <div class="fixed inset-y-0 left-0 w-64 bg-gray-800 text-white">
-    <div class="p-6">
-      <h1 class="text-xl font-bold">관리자 대시보드</h1>
-      <p class="text-gray-400 text-sm" id="adminWelcome">환영합니다</p>
+  <div id="sidebar" class="sidebar fixed inset-y-0 left-0 w-64 bg-gray-800 text-white z-50">
+    <div class="p-4 md:p-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-lg md:text-xl font-bold">관리자 대시보드</h1>
+          <p class="text-gray-400 text-xs md:text-sm" id="adminWelcome">관리자님 환영합니다</p>
+        </div>
+        <button id="closeSidebar" class="md:hidden text-white hover:text-gray-300">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
     </div>
     
-    <nav class="mt-8">
-      <a href="dashboard.html" class="nav-item active flex items-center px-6 py-3 text-gray-300 hover:text-white">
-        <i class="fas fa-tachometer-alt mr-3"></i>대시보드
+    <nav class="mt-4 md:mt-8">
+      <a href="dashboard.html" class="nav-item active flex items-center px-4 md:px-6 py-3 text-gray-300 hover:text-white">
+        <i class="fas fa-tachometer-alt mr-3"></i>
+        <span class="text-sm md:text-base">대시보드</span>
       </a>
-      <a href="participants.html" class="nav-item flex items-center px-6 py-3 text-gray-300 hover:text-white">
-        <i class="fas fa-users mr-3"></i>참여자 관리
+      <a href="participants.html" class="nav-item flex items-center px-4 md:px-6 py-3 text-gray-300 hover:text-white">
+        <i class="fas fa-users mr-3"></i>
+        <span class="text-sm md:text-base">참여자 관리</span>
       </a>
-      <a href="feedback.html" class="nav-item flex items-center px-6 py-3 text-gray-300 hover:text-white">
-        <i class="fas fa-edit mr-3"></i>피드백 편집
+      <a href="feedback.html" class="nav-item flex items-center px-4 md:px-6 py-3 text-gray-300 hover:text-white">
+        <i class="fas fa-edit mr-3"></i>
+        <span class="text-sm md:text-base">피드백 편집</span>
       </a>
-      <a href="#" class="nav-item flex items-center px-6 py-3 text-gray-300 hover:text-white" onclick="logout()">
-        <i class="fas fa-sign-out-alt mr-3"></i>로그아웃
+      <a href="#" class="nav-item flex items-center px-4 md:px-6 py-3 text-gray-300 hover:text-white" onclick="logout()">
+        <i class="fas fa-sign-out-alt mr-3"></i>
+        <span class="text-sm md:text-base">로그아웃</span>
       </a>
     </nav>
   </div>
 
   <!-- Main Content -->
-  <div class="ml-64 min-h-screen bg-gray-100">
+  <div class="main-content ml-0 md:ml-64 min-h-screen bg-gray-100">
     <!-- Header -->
-    <header class="bg-white shadow-sm border-b border-gray-200">
-      <div class="px-6 py-4">
+    <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-30">
+      <div class="px-4 md:px-6 py-3 md:py-4">
         <div class="flex items-center justify-between">
-          <h2 class="text-2xl font-semibold text-gray-800">대시보드</h2>
-          <div class="flex items-center space-x-4">
-            <div class="text-sm text-gray-600" id="currentDateTime"></div>
-            <button onclick="refreshData()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm">
-              <i class="fas fa-sync-alt mr-1"></i>새로고침
+          <div class="flex items-center">
+            <button id="mobileMenuBtn" class="md:hidden mr-3 text-gray-600 hover:text-gray-800">
+              <i class="fas fa-bars text-xl"></i>
+            </button>
+            <h2 class="text-lg md:text-2xl font-semibold text-gray-800">대시보드</h2>
+          </div>
+          <div class="flex items-center space-x-2 md:space-x-4">
+            <div class="hidden md:block text-sm text-gray-600" id="currentDateTime"></div>
+            <div id="googleStatus" class="text-xs px-2 py-1 rounded-full">
+              <div class="loading-spinner inline-block mr-1"></div>
+              연결 확인 중...
+            </div>
+            <button onclick="refreshData()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm">
+              <i class="fas fa-sync-alt mr-1"></i>
+              <span class="hidden md:inline">새로고침</span>
+            </button>
+            <button onclick="logout()" class="bg-red-600 hover:bg-red-700 text-white px-2 md:px-4 py-1 md:py-2 rounded-lg text-xs md:text-sm">
+              <i class="fas fa-sign-out-alt mr-1"></i>
+              <span class="hidden md:inline">로그아웃</span>
             </button>
           </div>
         </div>
@@ -68,83 +133,91 @@
     </header>
 
     <!-- Dashboard Content -->
-    <div class="p-6">
+    <div class="p-4 md:p-6">
       <!-- Stats Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div class="bg-white rounded-lg shadow p-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
+        <div class="stat-card bg-white rounded-lg shadow p-4 md:p-6">
           <div class="flex items-center">
             <div class="p-3 rounded-full bg-blue-100 text-blue-600">
-              <i class="fas fa-users text-xl"></i>
+              <i class="fas fa-users text-lg md:text-xl"></i>
             </div>
             <div class="ml-4">
-              <p class="text-sm font-medium text-gray-600">총 참여자</p>
-              <p class="text-2xl font-semibold text-gray-900" id="totalParticipants">0</p>
+              <p class="text-xs md:text-sm font-medium text-gray-600">총 참여자</p>
+              <p class="text-xl md:text-2xl font-semibold text-gray-900" id="totalParticipants">
+                <div class="loading-spinner inline-block"></div>
+              </p>
             </div>
           </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow p-6">
+        <div class="stat-card bg-white rounded-lg shadow p-4 md:p-6">
           <div class="flex items-center">
             <div class="p-3 rounded-full bg-green-100 text-green-600">
-              <i class="fas fa-check-circle text-xl"></i>
+              <i class="fas fa-check-circle text-lg md:text-xl"></i>
             </div>
             <div class="ml-4">
-              <p class="text-sm font-medium text-gray-600">완료</p>
-              <p class="text-2xl font-semibold text-gray-900" id="completedTests">0</p>
+              <p class="text-xs md:text-sm font-medium text-gray-600">완료</p>
+              <p class="text-xl md:text-2xl font-semibold text-gray-900" id="completedTests">
+                <div class="loading-spinner inline-block"></div>
+              </p>
             </div>
           </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow p-6">
+        <div class="stat-card bg-white rounded-lg shadow p-4 md:p-6">
           <div class="flex items-center">
             <div class="p-3 rounded-full bg-yellow-100 text-yellow-600">
-              <i class="fas fa-clock text-xl"></i>
+              <i class="fas fa-clock text-lg md:text-xl"></i>
             </div>
             <div class="ml-4">
-              <p class="text-sm font-medium text-gray-600">진행 중</p>
-              <p class="text-2xl font-semibold text-gray-900" id="inProgressTests">0</p>
+              <p class="text-xs md:text-sm font-medium text-gray-600">대기중</p>
+              <p class="text-xl md:text-2xl font-semibold text-gray-900" id="pendingTests">
+                <div class="loading-spinner inline-block"></div>
+              </p>
             </div>
           </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow p-6">
+        <div class="stat-card bg-white rounded-lg shadow p-4 md:p-6">
           <div class="flex items-center">
-            <div class="p-3 rounded-full bg-red-100 text-red-600">
-              <i class="fas fa-exclamation-triangle text-xl"></i>
+            <div class="p-3 rounded-full bg-purple-100 text-purple-600">
+              <i class="fas fa-chart-line text-lg md:text-xl"></i>
             </div>
             <div class="ml-4">
-              <p class="text-sm font-medium text-gray-600">미시작</p>
-              <p class="text-2xl font-semibold text-gray-900" id="notStartedTests">0</p>
+              <p class="text-xs md:text-sm font-medium text-gray-600">완료율</p>
+              <p class="text-xl md:text-2xl font-semibold text-gray-900" id="completionRate">
+                <div class="loading-spinner inline-block"></div>
+              </p>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Quick Actions and Recent Activity -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div class="bg-white rounded-lg shadow p-6">
-          <h3 class="text-lg font-semibold mb-4">빠른 작업</h3>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
+        <div class="bg-white rounded-lg shadow p-4 md:p-6">
+          <h3 class="text-base md:text-lg font-semibold mb-4">빠른 작업</h3>
           <div class="space-y-3">
-            <a href="participants.html" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-left block">
+            <a href="participants.html" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-left block text-sm md:text-base">
               <i class="fas fa-user-plus mr-2"></i>새 참여자 등록
             </a>
-            <button onclick="sendBulkEmail()" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg text-left">
+            <button onclick="sendBulkEmail()" class="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg text-left text-sm md:text-base">
               <i class="fas fa-envelope mr-2"></i>진단 링크 일괄 발송
             </button>
-            <button onclick="exportResults()" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg text-left">
+            <button onclick="exportResults()" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg text-left text-sm md:text-base">
               <i class="fas fa-download mr-2"></i>결과 내보내기
             </button>
-            <a href="feedback.html" class="w-full bg-orange-600 hover:bg-orange-700 text-white py-2 px-4 rounded-lg text-left block">
+            <a href="feedback.html" class="w-full bg-orange-600 hover:bg-orange-700 text-white py-2 px-4 rounded-lg text-left block text-sm md:text-base">
               <i class="fas fa-edit mr-2"></i>피드백 편집
             </a>
           </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow p-6">
-          <h3 class="text-lg font-semibold mb-4">최근 활동</h3>
+        <div class="bg-white rounded-lg shadow p-4 md:p-6">
+          <h3 class="text-base md:text-lg font-semibold mb-4">최근 활동</h3>
           <div id="recentActivity" class="space-y-3 text-sm">
             <div class="flex items-center text-gray-600">
-              <i class="fas fa-info-circle mr-2 text-blue-500"></i>
+              <div class="loading-spinner mr-2"></div>
               <div>
                 <div>데이터를 불러오는 중...</div>
                 <div class="text-xs text-gray-400">잠시만 기다려주세요</div>
@@ -155,38 +228,39 @@
       </div>
 
       <!-- Charts -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div class="bg-white rounded-lg shadow p-6">
-          <h3 class="text-lg font-semibold mb-4">진행률 현황</h3>
-          <div style="height: 300px;">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
+        <div class="bg-white rounded-lg shadow p-4 md:p-6">
+          <h3 class="text-base md:text-lg font-semibold mb-4">진행률 현황</h3>
+          <div class="h-64 md:h-80">
             <canvas id="progressChart"></canvas>
           </div>
         </div>
 
-        <div class="bg-white rounded-lg shadow p-6">
-          <h3 class="text-lg font-semibold mb-4">일주일 완료 추이</h3>
-          <div style="height: 300px;">
+        <div class="bg-white rounded-lg shadow p-4 md:p-6">
+          <h3 class="text-base md:text-lg font-semibold mb-4">일주일 완료 추이</h3>
+          <div class="h-64 md:h-80">
             <canvas id="weeklyChart"></canvas>
           </div>
         </div>
       </div>
 
       <!-- Recent Participants -->
-      <div class="bg-white rounded-lg shadow p-6">
-        <h3 class="text-lg font-semibold mb-4">최근 참여자</h3>
+      <div class="bg-white rounded-lg shadow p-4 md:p-6">
+        <h3 class="text-base md:text-lg font-semibold mb-4">최근 참여자</h3>
         <div class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
               <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">참여자</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">등록일</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">상태</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">작업</th>
+                <th class="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">참여자</th>
+                <th class="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">등록일</th>
+                <th class="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">상태</th>
+                <th class="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">작업</th>
               </tr>
             </thead>
             <tbody id="recentParticipantsTable" class="bg-white divide-y divide-gray-200">
               <tr>
-                <td colspan="4" class="px-6 py-4 text-center text-gray-500">
+                <td colspan="4" class="px-4 md:px-6 py-4 text-center text-gray-500">
+                  <div class="loading-spinner inline-block mr-2"></div>
                   참여자 데이터를 불러오는 중...
                 </td>
               </tr>
@@ -198,75 +272,123 @@
   </div>
 
   <script>
-    // 페이지 로드 시 인증 확인 및 초기화
-    document.addEventListener('DOMContentLoaded', function() {
-  // Auth 시스템 초기화 (인증 체크 + 환영 메시지 + 비활성화 타이머 시작)
-  if (!AdminAuth.init()) {
-    return; // 인증 실패 시 리다이렉트됨
-  }
-  
-  // 현재 관리자 정보 가져오기
-  const currentAdmin = AdminAuth.getCurrentAdmin();
-  
-  // 나머지 페이지별 초기화 코드...
-  updateDateTime();
-  setInterval(updateDateTime, 60000);
-  setupMobileMenu();
-  // 페이지별 고유 초기화 함수들...
-});
-    // 현재 시간 업데이트
-    function updateDateTime() {
-      const now = new Date();
-      const dateTimeString = now.toLocaleString('ko-KR');
-      document.getElementById('currentDateTime').textContent = dateTimeString;
+    // 전역 변수
+    let currentAdmin = null;
+    let participantsData = [];
+    let resultsData = [];
+    let progressChart = null;
+    let weeklyChart = null;
+
+    // 페이지 로드 시 초기화
+    document.addEventListener('DOMContentLoaded', async function() {
+      checkAuth();
+      updateDateTime();
+      setInterval(updateDateTime, 60000);
+      setupMobileMenu();
+      
+      // Google API 초기화 및 데이터 로드
+      await initializeDashboard();
+    });
+
+    // 인증 체크
+    function checkAuth() {
+      const adminData = localStorage.getItem('currentAdmin');
+      if (!adminData) {
+        window.location.href = 'index.html';
+        return false;
+      }
+      
+      currentAdmin = JSON.parse(adminData);
+      document.getElementById('adminWelcome').textContent = `${currentAdmin.name}님 환영합니다`;
+      return true;
     }
 
-    // 로그아웃
-    function logout() {
-      if (confirm('로그아웃 하시겠습니까?')) {
-        localStorage.removeItem('currentAdmin');
-        window.location.href = 'index.html';
+    // 대시보드 초기화
+    async function initializeDashboard() {
+      try {
+        await initializeGoogleAPI();
+        updateGoogleStatus(true, '연결됨');
+        await loadDashboardData();
+      } catch (error) {
+        console.error('Google API 초기화 실패:', error);
+        updateGoogleStatus(false, '연결 실패');
+        loadLocalData(); // 로컬 데이터로 폴백
       }
     }
 
-    // 대시보드 데이터 로드
-    function loadDashboardData() {
-      // 참여자 데이터 로드
-      const participantsData = JSON.parse(localStorage.getItem('participantsData') || '[]');
-      const resultsData = JSON.parse(localStorage.getItem('resultsData') || '[]');
+    // Google 연동 상태 업데이트
+    function updateGoogleStatus(isConnected, message) {
+      const statusElement = document.getElementById('googleStatus');
       
-      // 통계 업데이트
-      updateDashboardStats(participantsData, resultsData);
+      if (isConnected) {
+        statusElement.className = 'text-xs px-2 py-1 rounded-full bg-green-100 text-green-700';
+        statusElement.innerHTML = '<i class="fas fa-check-circle mr-1"></i>' + message;
+      } else {
+        statusElement.className = 'text-xs px-2 py-1 rounded-full bg-red-100 text-red-700';
+        statusElement.innerHTML = '<i class="fas fa-exclamation-triangle mr-1"></i>' + message;
+      }
+    }
+
+    // Google Sheets에서 대시보드 데이터 로드
+    async function loadDashboardData() {
+      try {
+        // 병렬로 데이터 로드
+        const [participants, results] = await Promise.all([
+          getParticipants(),
+          getDiagnosisResults()
+        ]);
+
+        participantsData = participants;
+        resultsData = results;
+
+        // 통계 업데이트
+        updateDashboardStats();
+        
+        // 최근 활동 업데이트
+        updateRecentActivity();
+        
+        // 최근 참여자 테이블 업데이트
+        updateRecentParticipantsTable();
+        
+        // 차트 생성
+        createProgressChart();
+        createWeeklyChart();
+
+      } catch (error) {
+        console.error('대시보드 데이터 로드 실패:', error);
+        loadLocalData(); // 로컬 데이터로 폴백
+      }
+    }
+
+    // 로컬 데이터 로드 (폴백용)
+    function loadLocalData() {
+      participantsData = JSON.parse(localStorage.getItem('participants') || '[]');
+      resultsData = JSON.parse(localStorage.getItem('diagnosisResults') || '[]');
       
-      // 최근 활동 업데이트
-      updateRecentActivity(participantsData, resultsData);
-      
-      // 최근 참여자 테이블 업데이트
-      updateRecentParticipantsTable(participantsData);
-      
-      // 차트 생성
-      createProgressChart(participantsData, resultsData);
-      createWeeklyChart(resultsData);
+      updateDashboardStats();
+      updateRecentActivity();
+      updateRecentParticipantsTable();
+      createProgressChart();
+      createWeeklyChart();
     }
 
     // 대시보드 통계 업데이트
-    function updateDashboardStats(participantsData, resultsData) {
+    function updateDashboardStats() {
       const totalParticipants = participantsData.length;
       const completedTests = resultsData.length;
-      const inProgressTests = participantsData.filter(p => p.status === 'in-progress').length;
-      const notStartedTests = totalParticipants - completedTests - inProgressTests;
+      const pendingTests = participantsData.filter(p => p.status === 'pending').length;
+      const completionRate = totalParticipants > 0 ? Math.round((completedTests / totalParticipants) * 100) : 0;
       
       document.getElementById('totalParticipants').textContent = totalParticipants;
       document.getElementById('completedTests').textContent = completedTests;
-      document.getElementById('inProgressTests').textContent = inProgressTests;
-      document.getElementById('notStartedTests').textContent = Math.max(0, notStartedTests);
+      document.getElementById('pendingTests').textContent = pendingTests;
+      document.getElementById('completionRate').textContent = completionRate + '%';
     }
 
     // 최근 활동 업데이트
-    function updateRecentActivity(participantsData, resultsData) {
+    function updateRecentActivity() {
       const recentActivityContainer = document.getElementById('recentActivity');
       
-      // 최근 5개 활동 생성
       const activities = [];
       
       // 최근 완료된 진단
@@ -274,7 +396,7 @@
         activities.push({
           type: 'completion',
           text: `${result.participantName || '참여자'}님이 진단을 완료했습니다`,
-          time: new Date(result.completedAt || result.testDate).toLocaleString('ko-KR'),
+          time: new Date(result.completedAt).toLocaleString('ko-KR'),
           icon: 'fas fa-check-circle text-green-500'
         });
       });
@@ -284,7 +406,7 @@
         activities.push({
           type: 'registration',
           text: `${participant.name}님이 등록되었습니다`,
-          time: new Date(participant.registeredAt).toLocaleString('ko-KR'),
+          time: new Date(participant.createdAt).toLocaleString('ko-KR'),
           icon: 'fas fa-user-plus text-blue-500'
         });
       });
@@ -313,14 +435,14 @@
     }
 
     // 최근 참여자 테이블 업데이트
-    function updateRecentParticipantsTable(participantsData) {
+    function updateRecentParticipantsTable() {
       const tableBody = document.getElementById('recentParticipantsTable');
       const recentParticipants = participantsData.slice(-5).reverse();
       
       if (recentParticipants.length === 0) {
         tableBody.innerHTML = `
           <tr>
-            <td colspan="4" class="px-6 py-4 text-center text-gray-500">
+            <td colspan="4" class="px-4 md:px-6 py-4 text-center text-gray-500">
               등록된 참여자가 없습니다
             </td>
           </tr>
@@ -328,7 +450,7 @@
       } else {
         tableBody.innerHTML = recentParticipants.map(participant => `
           <tr>
-            <td class="px-6 py-4 whitespace-nowrap">
+            <td class="px-4 md:px-6 py-4 whitespace-nowrap">
               <div class="flex items-center">
                 <div class="flex-shrink-0 h-8 w-8">
                   <div class="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center">
@@ -341,16 +463,16 @@
                 </div>
               </div>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-              ${new Date(participant.registeredAt).toLocaleDateString('ko-KR')}
+            <td class="px-4 md:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+              ${new Date(participant.createdAt).toLocaleDateString('ko-KR')}
             </td>
-            <td class="px-6 py-4 whitespace-nowrap">
+            <td class="px-4 md:px-6 py-4 whitespace-nowrap">
               <span class="px-2 py-1 text-xs font-medium rounded-full ${getStatusBadgeClass(participant.status)}">
                 ${getStatusText(participant.status)}
               </span>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-              <a href="participants.html?id=${participant.participantCode}" class="text-blue-600 hover:text-blue-900">
+            <td class="px-4 md:px-6 py-4 whitespace-nowrap text-sm font-medium">
+              <a href="participants.html" class="text-blue-600 hover:text-blue-900">
                 관리
               </a>
             </td>
@@ -363,8 +485,7 @@
     function getStatusBadgeClass(status) {
       switch (status) {
         case 'completed': return 'bg-green-100 text-green-800';
-        case 'in-progress': return 'bg-yellow-100 text-yellow-800';
-        case 'not-started': return 'bg-red-100 text-red-800';
+        case 'pending': return 'bg-yellow-100 text-yellow-800';
         default: return 'bg-gray-100 text-gray-800';
       }
     }
@@ -373,30 +494,32 @@
     function getStatusText(status) {
       switch (status) {
         case 'completed': return '완료';
-        case 'in-progress': return '진행 중';
-        case 'not-started': return '미시작';
+        case 'pending': return '대기중';
         default: return '알 수 없음';
       }
     }
 
     // 진행률 차트 생성
-    function createProgressChart(participantsData, resultsData) {
+    function createProgressChart() {
       const ctx = document.getElementById('progressChart').getContext('2d');
       
-      const completedCount = resultsData.length;
-      const inProgressCount = participantsData.filter(p => p.status === 'in-progress').length;
-      const notStartedCount = participantsData.length - completedCount - inProgressCount;
+      if (progressChart) {
+        progressChart.destroy();
+      }
       
-      new Chart(ctx, {
+      const completedCount = resultsData.length;
+      const pendingCount = participantsData.filter(p => p.status === 'pending').length;
+      const totalCount = participantsData.length;
+      
+      progressChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
-          labels: ['완료', '진행 중', '미시작'],
+          labels: ['완료', '대기중'],
           datasets: [{
-            data: [completedCount, inProgressCount, Math.max(0, notStartedCount)],
+            data: [completedCount, pendingCount],
             backgroundColor: [
               '#10B981', // 완료 - 초록색
-              '#F59E0B', // 진행 중 - 노란색
-              '#EF4444'  // 미시작 - 빨간색
+              '#F59E0B'  // 대기중 - 노란색
             ],
             borderWidth: 2,
             borderColor: '#fff'
@@ -415,8 +538,12 @@
     }
 
     // 주간 완료 추이 차트 생성
-    function createWeeklyChart(resultsData) {
+    function createWeeklyChart() {
       const ctx = document.getElementById('weeklyChart').getContext('2d');
+      
+      if (weeklyChart) {
+        weeklyChart.destroy();
+      }
       
       // 최근 7일 데이터 생성
       const last7Days = Array.from({length: 7}, (_, i) => {
@@ -431,12 +558,12 @@
         const dateStr = date.toDateString();
         
         return resultsData.filter(result => {
-          const resultDate = new Date(result.completedAt || result.testDate);
+          const resultDate = new Date(result.completedAt);
           return resultDate.toDateString() === dateStr;
         }).length;
       });
       
-      new Chart(ctx, {
+      weeklyChart = new Chart(ctx, {
         type: 'line',
         data: {
           labels: last7Days,
@@ -466,52 +593,65 @@
     }
 
     // 데이터 새로고침
-    function refreshData() {
-      loadDashboardData();
-      alert('데이터가 새로고침되었습니다.');
+    async function refreshData() {
+      try {
+        updateGoogleStatus(true, '새로고침 중...');
+        await loadDashboardData();
+        updateGoogleStatus(true, '연결됨');
+        showMessage('데이터가 새로고침되었습니다.', 'success');
+      } catch (error) {
+        updateGoogleStatus(false, '새로고침 실패');
+        showMessage('데이터 새로고침에 실패했습니다.', 'error');
+      }
     }
 
     // 일괄 이메일 발송
-    function sendBulkEmail() {
-      const participantsData = JSON.parse(localStorage.getItem('participantsData') || '[]');
-      const pendingParticipants = participantsData.filter(p => p.status === 'not-started');
+    async function sendBulkEmail() {
+      const pendingParticipants = participantsData.filter(p => p.status === 'pending');
       
       if (pendingParticipants.length === 0) {
-        alert('발송할 대상이 없습니다.');
+        showMessage('발송할 대상이 없습니다.', 'warning');
         return;
       }
       
       if (confirm(`${pendingParticipants.length}명에게 진단 링크를 발송하시겠습니까?`)) {
-        // 실제로는 이메일 발송 로직 구현
-        alert(`${pendingParticipants.length}명에게 이메일을 발송했습니다.`);
+        try {
+          // 실제 이메일 발송 로직 구현 (EmailJS 등)
+          showMessage(`${pendingParticipants.length}명에게 이메일을 발송했습니다.`, 'success');
+        } catch (error) {
+          showMessage('이메일 발송 중 오류가 발생했습니다.', 'error');
+        }
       }
     }
 
     // 결과 내보내기
-    function exportResults() {
-      const resultsData = JSON.parse(localStorage.getItem('resultsData') || '[]');
-      
+    async function exportResults() {
       if (resultsData.length === 0) {
-        alert('내보낼 결과가 없습니다.');
+        showMessage('내보낼 결과가 없습니다.', 'warning');
         return;
       }
       
-      // CSV 형태로 내보내기
-      const csvContent = convertToCSV(resultsData);
-      downloadCSV(csvContent, `leadership_results_${new Date().toISOString().split('T')[0]}.csv`);
+      try {
+        const csvContent = convertToCSV(resultsData);
+        downloadCSV(csvContent, `leadership_results_${new Date().toISOString().split('T')[0]}.csv`);
+        showMessage('결과가 성공적으로 내보내졌습니다.', 'success');
+      } catch (error) {
+        showMessage('결과 내보내기 중 오류가 발생했습니다.', 'error');
+      }
     }
 
     // CSV 변환 함수
     function convertToCSV(data) {
-      const headers = ['참여코드', '이름', '완료일', '종합점수', '나르시시즘', '마키아벨리즘', '사이코패시'];
+      const headers = ['참여코드', '이름', '이메일', '완료일', '나르시시즘', '마키아벨리즘', '사이코패시', '평균점수'];
       const rows = data.map(result => [
         result.participantCode || '',
         result.participantName || '',
-        result.completedAt || result.testDate || '',
-        result.overallScore || result.overall || '',
-        result.narcissismScore || result.narcissism || '',
-        result.machiavellianismScore || result.machiavellianism || '',
-        result.psychopathyScore || result.psychopathy || ''
+        result.participantEmail || '',
+        result.completedAt || '',
+        result.scores?.narcissism || '',
+        result.scores?.machiavellianism || '',
+        result.scores?.psychopathy || '',
+        result.avgScore || ''
       ]);
       
       return [headers, ...rows].map(row => 
@@ -533,6 +673,96 @@
       link.click();
       document.body.removeChild(link);
     }
+
+    // 모바일 메뉴 설정
+    function setupMobileMenu() {
+      const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('mobileOverlay');
+      const closeSidebar = document.getElementById('closeSidebar');
+
+      mobileMenuBtn.addEventListener('click', function() {
+        sidebar.classList.add('mobile-open');
+        overlay.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+      });
+
+      function closeMobileMenu() {
+        sidebar.classList.remove('mobile-open');
+        overlay.classList.add('hidden');
+        document.body.style.overflow = '';
+      }
+
+      closeSidebar.addEventListener('click', closeMobileMenu);
+      overlay.addEventListener('click', closeMobileMenu);
+    }
+
+    // 현재 시간 업데이트
+    function updateDateTime() {
+      const now = new Date();
+      const dateTimeString = now.toLocaleString('ko-KR');
+      const element = document.getElementById('currentDateTime');
+      if (element) {
+        element.textContent = dateTimeString;
+      }
+    }
+
+    // 메시지 표시
+    function showMessage(message, type) {
+      const alertDiv = document.createElement('div');
+      const colorClasses = {
+        success: 'bg-green-100 border-green-400 text-green-700',
+        error: 'bg-red-100 border-red-400 text-red-700',
+        warning: 'bg-yellow-100 border-yellow-400 text-yellow-700'
+      };
+      
+      const iconClasses = {
+        success: 'fa-check-circle',
+        error: 'fa-exclamation-triangle',
+        warning: 'fa-exclamation-triangle'
+      };
+
+      alertDiv.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg border ${colorClasses[type] || colorClasses.error}`;
+      alertDiv.innerHTML = `
+        <div class="flex items-center">
+          <i class="fas ${iconClasses[type] || iconClasses.error} mr-2"></i>
+          <span>${message}</span>
+        </div>
+      `;
+      
+      document.body.appendChild(alertDiv);
+      
+      setTimeout(() => {
+        alertDiv.remove();
+      }, 3000);
+    }
+
+    // 로그아웃
+    function logout() {
+      if (confirm('로그아웃 하시겠습니까?')) {
+        localStorage.removeItem('currentAdmin');
+        if (typeof signOutUser === 'function' && isUserSignedIn()) {
+          signOutUser();
+        }
+        window.location.href = 'index.html';
+      }
+    }
+
+    // 키보드 단축키
+    document.addEventListener('keydown', function(e) {
+      if (e.ctrlKey || e.metaKey) {
+        switch(e.key) {
+          case 'r':
+            e.preventDefault();
+            refreshData();
+            break;
+          case 'e':
+            e.preventDefault();
+            exportResults();
+            break;
+        }
+      }
+    });
   </script>
 </body>
 </html>
