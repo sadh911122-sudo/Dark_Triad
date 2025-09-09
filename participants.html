@@ -80,7 +80,6 @@
       color: #991b1b;
     }
   </style>
-  <script src="auth.js"></script>
 </head>
 <body class="bg-gray-50">
   
@@ -428,36 +427,6 @@
     </div>
   </div>
 
-  <!-- 참여자 상세 모달 -->
-  <div id="participantModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden p-4">
-    <div class="bg-white rounded-lg max-w-md w-full">
-      <div class="p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-semibold">참여자 상세 정보</h3>
-          <button onclick="closeParticipantModal()" class="text-gray-500 hover:text-gray-700">
-            <i class="fas fa-times text-xl"></i>
-          </button>
-        </div>
-        
-        <div id="participantDetails" class="space-y-3">
-          <!-- 참여자 상세 정보가 여기에 표시됩니다 -->
-        </div>
-        
-        <div class="mt-6 flex space-x-3">
-          <button onclick="sendInvite()" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-sm">
-            <i class="fas fa-envelope mr-2"></i>초대 발송
-          </button>
-          <button onclick="editParticipant()" class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg text-sm">
-            <i class="fas fa-edit mr-2"></i>수정
-          </button>
-          <button onclick="deleteParticipant()" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg text-sm">
-            <i class="fas fa-trash mr-2"></i>삭제
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <script>
     // 전역 변수
     let currentAdmin = null;
@@ -467,21 +436,52 @@
     let uploadedData = [];
 
     // 페이지 초기화
-   document.addEventListener('DOMContentLoaded', function() {
-  // Auth 시스템 초기화 (인증 체크 + 환영 메시지 + 비활성화 타이머 시작)
-  if (!AdminAuth.init()) {
-    return; // 인증 실패 시 리다이렉트됨
-  }
-  
-  // 현재 관리자 정보 가져오기
-  const currentAdmin = AdminAuth.getCurrentAdmin();
-  
-  // 나머지 페이지별 초기화 코드...
-  updateDateTime();
-  setInterval(updateDateTime, 60000);
-  setupMobileMenu();
-  // 페이지별 고유 초기화 함수들...
-});
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('참여자 관리 페이지 초기화...');
+      
+      // 인증 확인
+      checkAuth();
+      
+      // 기본 초기화
+      updateDateTime();
+      setInterval(updateDateTime, 60000);
+      setupMobileMenu();
+      setupTabs();
+      setupFileUpload(); 
+      setupSearch();
+      
+      // 데이터 로드
+      loadParticipants();
+      updateStatistics();
+      
+      // 폼 이벤트 등록
+      document.getElementById('addParticipantForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        addParticipant();
+      });
+    });
+
+    // 인증 확인 함수
+    function checkAuth() {
+      const savedAdmin = localStorage.getItem('currentAdmin');
+      if (!savedAdmin) {
+        alert('로그인이 필요합니다.');
+        window.location.href = 'index.html';
+        return false;
+      }
+      
+      try {
+        const admin = JSON.parse(savedAdmin);
+        currentAdmin = admin;
+        document.getElementById('adminWelcome').textContent = `${admin.name}님 환영합니다`;
+        return true;
+      } catch (error) {
+        console.error('인증 정보 오류:', error);
+        window.location.href = 'index.html';
+        return false;
+      }
+    }
+
     // 모바일 메뉴 설정
     function setupMobileMenu() {
       const mobileMenuBtn = document.getElementById('mobileMenuBtn');
@@ -489,11 +489,13 @@
       const overlay = document.getElementById('mobileOverlay');
       const closeSidebar = document.getElementById('closeSidebar');
 
-      mobileMenuBtn.addEventListener('click', function() {
-        sidebar.classList.add('mobile-open');
-        overlay.classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
-      });
+      if (mobileMenuBtn) {
+        mobileMenuBtn.addEventListener('click', function() {
+          sidebar.classList.add('mobile-open');
+          overlay.classList.remove('hidden');
+          document.body.style.overflow = 'hidden';
+        });
+      }
 
       function closeMobileMenu() {
         sidebar.classList.remove('mobile-open');
@@ -501,8 +503,8 @@
         document.body.style.overflow = '';
       }
 
-      closeSidebar.addEventListener('click', closeMobileMenu);
-      overlay.addEventListener('click', closeMobileMenu);
+      if (closeSidebar) closeSidebar.addEventListener('click', closeMobileMenu);
+      if (overlay) overlay.addEventListener('click', closeMobileMenu);
     }
 
     // 탭 설정
@@ -539,31 +541,35 @@
       const fileDropArea = document.getElementById('fileDropArea');
       const fileInput = document.getElementById('excelFileInput');
 
-      // 드래그 앤 드롭 이벤트
-      fileDropArea.addEventListener('dragover', function(e) {
-        e.preventDefault();
-        this.classList.add('dragover');
-      });
+      if (fileDropArea) {
+        // 드래그 앤 드롭 이벤트
+        fileDropArea.addEventListener('dragover', function(e) {
+          e.preventDefault();
+          this.classList.add('dragover');
+        });
 
-      fileDropArea.addEventListener('dragleave', function(e) {
-        e.preventDefault();
-        this.classList.remove('dragover');
-      });
+        fileDropArea.addEventListener('dragleave', function(e) {
+          e.preventDefault();
+          this.classList.remove('dragover');
+        });
 
-      fileDropArea.addEventListener('drop', function(e) {
-        e.preventDefault();
-        this.classList.remove('dragover');
-        const files = e.dataTransfer.files;
-        if (files.length > 0) {
-          handleFileUpload(files[0]);
-        }
-      });
+        fileDropArea.addEventListener('drop', function(e) {
+          e.preventDefault();
+          this.classList.remove('dragover');
+          const files = e.dataTransfer.files;
+          if (files.length > 0) {
+            handleFileUpload(files[0]);
+          }
+        });
+      }
 
-      fileInput.addEventListener('change', function(e) {
-        if (e.target.files.length > 0) {
-          handleFileUpload(e.target.files[0]);
-        }
-      });
+      if (fileInput) {
+        fileInput.addEventListener('change', function(e) {
+          if (e.target.files.length > 0) {
+            handleFileUpload(e.target.files[0]);
+          }
+        });
+      }
     }
 
     // 검색 설정
@@ -571,8 +577,8 @@
       const searchInput = document.getElementById('searchInput');
       const statusFilter = document.getElementById('statusFilter');
 
-      searchInput.addEventListener('input', filterParticipants);
-      statusFilter.addEventListener('change', filterParticipants);
+      if (searchInput) searchInput.addEventListener('input', filterParticipants);
+      if (statusFilter) statusFilter.addEventListener('change', filterParticipants);
     }
 
     // 현재 시간 업데이트
@@ -585,10 +591,8 @@
       }
     }
 
-    // 참여자 추가 (개별)
-    document.getElementById('addParticipantForm').addEventListener('submit', function(e) {
-      e.preventDefault();
-      
+    // 참여자 추가
+    function addParticipant() {
       const participant = {
         id: generateId(),
         name: document.getElementById('participantName').value,
@@ -614,9 +618,9 @@
       updateStatistics();
       
       // 폼 초기화
-      this.reset();
+      document.getElementById('addParticipantForm').reset();
       showSuccess('참여자가 성공적으로 추가되었습니다.');
-    });
+    }
 
     // 엑셀 템플릿 다운로드
     function downloadTemplate() {
@@ -917,10 +921,6 @@
             ${new Date(participant.registeredAt).toLocaleDateString('ko-KR')}
           </td>
           <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-            <button onclick="viewParticipant('${participant.id}')" 
-                    class="text-blue-600 hover:text-blue-900 mr-2">
-              <i class="fas fa-eye"></i>
-            </button>
             <button onclick="sendInviteToParticipant('${participant.id}')" 
                     class="text-green-600 hover:text-green-900 mr-2">
               <i class="fas fa-envelope"></i>
@@ -978,65 +978,6 @@
       });
       updateBulkActions();
     });
-
-    // 참여자 상세보기
-    function viewParticipant(id) {
-      const participant = participants.find(p => p.id === id);
-      if (!participant) return;
-
-      const modal = document.getElementById('participantModal');
-      const details = document.getElementById('participantDetails');
-      
-      details.innerHTML = `
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="text-sm font-medium text-gray-600">성명</label>
-            <p class="text-gray-900">${participant.name}</p>
-          </div>
-          <div>
-            <label class="text-sm font-medium text-gray-600">이메일</label>
-            <p class="text-gray-900">${participant.email}</p>
-          </div>
-          <div>
-            <label class="text-sm font-medium text-gray-600">소속</label>
-            <p class="text-gray-900">${participant.organization || '-'}</p>
-          </div>
-          <div>
-            <label class="text-sm font-medium text-gray-600">직책</label>
-            <p class="text-gray-900">${participant.position || '-'}</p>
-          </div>
-          <div>
-            <label class="text-sm font-medium text-gray-600">상태</label>
-            <p class="text-gray-900">${getStatusText(participant.status)}</p>
-          </div>
-          <div>
-            <label class="text-sm font-medium text-gray-600">등록일</label>
-            <p class="text-gray-900">${new Date(participant.registeredAt).toLocaleDateString('ko-KR')}</p>
-          </div>
-          <div class="col-span-2">
-            <label class="text-sm font-medium text-gray-600">진단 링크</label>
-            <div class="mt-1 flex">
-              <input type="text" readonly 
-                     value="${generateDiagnosisLink(participant.uniqueCode)}"
-                     class="flex-1 px-3 py-2 border border-gray-300 rounded-l-lg bg-gray-50 text-sm">
-              <button onclick="copyToClipboard('${generateDiagnosisLink(participant.uniqueCode)}')"
-                      class="px-3 py-2 bg-gray-600 text-white rounded-r-lg hover:bg-gray-700">
-                <i class="fas fa-copy"></i>
-              </button>
-            </div>
-          </div>
-        </div>
-      `;
-      
-      modal.classList.remove('hidden');
-      document.body.style.overflow = 'hidden';
-    }
-
-    // 모달 닫기
-    function closeParticipantModal() {
-      document.getElementById('participantModal').classList.add('hidden');
-      document.body.style.overflow = '';
-    }
 
     // 초대 발송
     function sendInviteToParticipant(id) {
@@ -1111,7 +1052,7 @@
       }
 
       const exportData = [
-        ['성명', '이메일', '소속', '직책', '상태', '등록일', '초대발송일', '완료일', '진단링크']
+        ['성명', '이메일', '소속', '직책', '상태', '등록일', '초대발송일', '완료일']
       ];
 
       participants.forEach(participant => {
@@ -1123,8 +1064,7 @@
           getStatusText(participant.status),
           new Date(participant.registeredAt).toLocaleDateString('ko-KR'),
           participant.inviteSentAt ? new Date(participant.inviteSentAt).toLocaleDateString('ko-KR') : '',
-          participant.completedAt ? new Date(participant.completedAt).toLocaleDateString('ko-KR') : '',
-          generateDiagnosisLink(participant.uniqueCode)
+          participant.completedAt ? new Date(participant.completedAt).toLocaleDateString('ko-KR') : ''
         ]);
       });
 
@@ -1132,19 +1072,6 @@
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, '참여자목록');
       
-      // 열 너비 설정
-      ws['!cols'] = [
-        { width: 15 }, // 성명
-        { width: 25 }, // 이메일
-        { width: 20 }, // 소속
-        { width: 15 }, // 직책
-        { width: 10 }, // 상태
-        { width: 12 }, // 등록일
-        { width: 12 }, // 초대발송일
-        { width: 12 }, // 완료일
-        { width: 50 }  // 진단링크
-      ];
-
       const today = new Date().toISOString().split('T')[0];
       XLSX.writeFile(wb, `참여자목록_${today}.xlsx`);
       
@@ -1174,18 +1101,6 @@
       return statusMap[status] || '대기 중';
     }
 
-    function generateDiagnosisLink(code) {
-      return `${window.location.origin}/diagnosis.html?code=${code}`;
-    }
-
-    function copyToClipboard(text) {
-      navigator.clipboard.writeText(text).then(() => {
-        showSuccess('링크가 클립보드에 복사되었습니다.');
-      }).catch(() => {
-        showError('복사에 실패했습니다.');
-      });
-    }
-
     function showSuccess(message) {
       const element = document.getElementById('successMessage');
       const textElement = document.getElementById('successText');
@@ -1209,11 +1124,8 @@
     // 로그아웃
     function logout() {
       if (confirm('로그아웃 하시겠습니까?')) {
-        if (typeof window.AdminAuth !== 'undefined') {
-          window.AdminAuth.logout();
-        } else {
-          window.location.href = 'index.html';
-        }
+        localStorage.removeItem('currentAdmin');
+        window.location.href = 'index.html';
       }
     }
   </script>
