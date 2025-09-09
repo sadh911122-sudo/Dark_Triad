@@ -129,20 +129,16 @@
       XLSX.writeFile(wb, 'participants_template.xlsx');
     }
 
-    // 참여 코드 발송
-    async function sendCode(code, email) {
-      // 이메일 발송 로직 (EmailJS 등 사용)
-      try {
-        const diagnosisLink = `${window.location.origin}/진단지.html?code=${code}`;
-        
-        // 여기에 실제 이메일 발송 로직 추가
-        // EmailJS나 다른 이메일 서비스 사용
-        
-        alert(`참여 코드가 ${email}로 발송되었습니다.\n진단 링크: ${diagnosisLink}`);
-      } catch (error) {
-        showErrorMessage('이메일 발송 중 오류가 발생했습니다: ' + error.message);
-      }
-    }
+   // 기존 sendCode 함수를 수정
+async function sendCode(code, email) {
+  try {
+    const participant = participants.find(p => p.code === code);
+    await sendParticipationCodeEmail(participant);
+    showMessage('참여코드가 성공적으로 발송되었습니다.', 'success');
+  } catch (error) {
+    showMessage('이메일 발송 중 오류가 발생했습니다: ' + error.message, 'error');
+  }
+}
 
     // 진단 링크 복사
     function copyDiagnosisLink(code) {
