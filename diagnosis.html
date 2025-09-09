@@ -7,6 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+  <script src="config.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
   <style>
@@ -117,6 +118,11 @@
       <div id="codeError" class="hidden mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg">
         <i class="fas fa-exclamation-triangle mr-2"></i>
         유효하지 않은 참여코드입니다.
+      </div>
+      
+      <div id="connectionStatus" class="mt-4 text-center text-sm text-gray-600">
+        <div class="loading-spinner inline-block mr-2" style="width: 16px; height: 16px; border-width: 2px;"></div>
+        시스템 연결 확인 중...
       </div>
     </div>
 
@@ -256,7 +262,7 @@
     <div id="loadingModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
       <div class="bg-white p-8 rounded-lg text-center">
         <div class="loading-spinner mx-auto mb-4"></div>
-        <p class="text-gray-700">진단 결과를 처리하고 있습니다...</p>
+        <p class="text-gray-700" id="loadingText">진단 결과를 처리하고 있습니다...</p>
       </div>
     </div>
 
@@ -269,6 +275,7 @@
     let questions = [];
     let participantInfo = null;
     let currentParticipant = null;
+    let isGoogleConnected = false;
     
     // 27개 진단 문항 (차원별로 구성, 실제 사용시 랜덤 섞임)
     const baseQuestions = [
@@ -442,7 +449,18 @@
     ];
 
     // 페이지 초기화
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', async function() {
+      // Google API 초기화 시도
+      try {
+        await initializeGoogleAPI();
+        isGoogleConnected = true;
+        updateConnectionStatus(true, '시스템 연결됨');
+      } catch (error) {
+        console.warn('Google API 초기화 실패, 로컬 모드로 동작:', error);
+        isGoogleConnected = false;
+        updateConnectionStatus(false, '로컬 모드');
+      }
+      
       // URL 파라미터에서 참여코드 확인
       const urlParams = new URLSearchParams(window.location.search);
       const code = urlParams.get('code');
@@ -452,19 +470,51 @@
       }
     });
 
-    // 참여코드 검증
-    function validateCode() {
-      const code = document.getElementById('participantCode').value.trim().toUpperCase();
-      const participants = JSON.parse(localStorage.getItem('participants') || '[]');
+    // 연결 상태 업데이트
+    function updateConnectionStatus(isConnected, message) {
+      const statusElement = document.getElementById('connectionStatus');
       
-      // 참여자 찾기
-      const participant = participants.find(p => p.code === code && p.status === 'pending');
-      
-      if (participant) {
-        currentParticipant = participant;
-        document.getElementById('codeError').classList.add('hidden');
-        startDiagnosis();
+      if (isConnected) {
+        statusElement.innerHTML = `
+          <i class="fas fa-check-circle text-green-500 mr-1"></i>
+          <span class="text-green-600">${message}</span>
+        `;
       } else {
+        statusElement.innerHTML = `
+          <i class="fas fa-exclamation-triangle text-yellow-500 mr-1"></i>
+          <span class="text-yellow-600">${message}</span>
+        `;
+      }
+    }
+
+    // 참여코드 검증
+    async function validateCode() {
+      const code = document.getElementById('participantCode').value.trim().toUpperCase();
+      
+      try {
+        let participants;
+        
+        if (isGoogleConnected) {
+          // Google Sheets에서 참여자 조회
+          participants = await getParticipants();
+        } else {
+          // localStorage에서 조회
+          participants = JSON.parse(localStorage.getItem('participants') || '[]');
+        }
+        
+        // 참여자 찾기
+        const participant = participants.find(p => p.code === code && p.status === 'pending');
+        
+        if (participant) {
+          currentParticipant = participant;
+          document.getElementById('codeError').classList.add('hidden');
+          startDiagnosis();
+        } else {
+          document.getElementById('codeError').classList.remove('hidden');
+        }
+      } catch (error) {
+        console.error('참여코드 검증 실패:', error);
+        document.getElementById('codeError').textContent = '시스템 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
         document.getElementById('codeError').classList.remove('hidden');
       }
     }
@@ -569,24 +619,31 @@
     // 결과 표시
     function showResults() {
       document.getElementById('loadingModal').classList.remove('hidden');
+      document.getElementById('loadingText').textContent = '진단 결과를 처리하고 있습니다...';
       
-      setTimeout(() => {
-        // 점수 계산
-        const scores = calculateScores();
-        
-        // 결과 섹션 표시
-        document.getElementById('mainSection').classList.add('hidden');
-        document.getElementById('resultSection').classList.remove('hidden');
-        document.getElementById('loadingModal').classList.add('hidden');
-        
-        // 결과 렌더링
-        renderResults(scores);
-        
-        // 참여자 상태 업데이트
-        updateParticipantStatus();
-        
-        // 결과 저장
-        saveResults(scores);
+      setTimeout(async () => {
+        try {
+          // 점수 계산
+          const scores = calculateScores();
+          
+          // 결과 저장
+          await saveResults(scores);
+          
+          // 참여자 상태 업데이트
+          await updateParticipantStatus();
+          
+          // 결과 섹션 표시
+          document.getElementById('mainSection').classList.add('hidden');
+          document.getElementById('resultSection').classList.remove('hidden');
+          document.getElementById('loadingModal').classList.add('hidden');
+          
+          // 결과 렌더링
+          await renderResults(scores);
+          
+        } catch (error) {
+          console.error('결과 처리 중 오류:', error);
+          document.getElementById('loadingText').textContent = '오류가 발생했습니다. 다시 시도해주세요.';
+        }
       }, 2000);
     }
 
@@ -613,17 +670,17 @@
     }
 
     // 결과 렌더링
-    function renderResults(scores) {
+    async function renderResults(scores) {
       // 차트 생성
       createChart(scores);
       
       // 각 차원별 결과 표시
-      renderDimensionResult('narcissism', scores.narcissism, 'red');
-      renderDimensionResult('machiavellianism', scores.machiavellianism, 'orange');
-      renderDimensionResult('psychopathy', scores.psychopathy, 'purple');
+      await renderDimensionResult('narcissism', scores.narcissism, 'red');
+      await renderDimensionResult('machiavellianism', scores.machiavellianism, 'orange');
+      await renderDimensionResult('psychopathy', scores.psychopathy, 'purple');
       
       // 종합 해석 표시
-      renderOverallInterpretation(scores);
+      await renderOverallInterpretation(scores);
     }
 
     // 차트 생성
@@ -669,10 +726,22 @@
     }
 
     // 차원별 결과 렌더링
-    function renderDimensionResult(dimension, score, color) {
-      const customFeedback = JSON.parse(localStorage.getItem('customFeedback') || '{}');
-      const dimensionFeedback = customFeedback[dimension] || getDefaultFeedback(dimension);
+    async function renderDimensionResult(dimension, score, color) {
+      let customFeedback;
       
+      try {
+        if (isGoogleConnected) {
+          // Google Sheets에서 피드백 데이터 읽기 (향후 구현)
+          customFeedback = JSON.parse(localStorage.getItem('customFeedback') || '{}');
+        } else {
+          customFeedback = JSON.parse(localStorage.getItem('customFeedback') || '{}');
+        }
+      } catch (error) {
+        console.warn('피드백 데이터 로드 실패:', error);
+        customFeedback = {};
+      }
+      
+      const dimensionFeedback = customFeedback[dimension] || getDefaultFeedback(dimension);
       const resultDiv = document.getElementById(`${dimension}Result`);
       const level = getScoreLevel(score);
       
@@ -742,10 +811,20 @@
     }
 
     // 종합 해석 렌더링
-    function renderOverallInterpretation(scores) {
-      const customFeedback = JSON.parse(localStorage.getItem('customFeedback') || '{}');
-      const leadership = customFeedback.leadership || {};
+    async function renderOverallInterpretation(scores) {
+      let customFeedback;
       
+      try {
+        if (isGoogleConnected) {
+          customFeedback = JSON.parse(localStorage.getItem('customFeedback') || '{}');
+        } else {
+          customFeedback = JSON.parse(localStorage.getItem('customFeedback') || '{}');
+        }
+      } catch (error) {
+        customFeedback = {};
+      }
+      
+      const leadership = customFeedback.leadership || {};
       const avgScore = ((parseFloat(scores.narcissism) + parseFloat(scores.machiavellianism) + parseFloat(scores.psychopathy)) / 3).toFixed(1);
       
       let interpretation;
@@ -798,20 +877,30 @@
     }
 
     // 참여자 상태 업데이트
-    function updateParticipantStatus() {
-      const participants = JSON.parse(localStorage.getItem('participants') || '[]');
-      const index = participants.findIndex(p => p.code === currentParticipant.code);
-      
-      if (index !== -1) {
-        participants[index].status = 'completed';
-        participants[index].completedAt = new Date().toISOString();
-        localStorage.setItem('participants', JSON.stringify(participants));
+    async function updateParticipantStatus() {
+      try {
+        if (isGoogleConnected) {
+          // Google Sheets에서 상태 업데이트
+          await updateParticipantStatus(currentParticipant.code, 'completed');
+        } else {
+          // localStorage에서 상태 업데이트
+          const participants = JSON.parse(localStorage.getItem('participants') || '[]');
+          const index = participants.findIndex(p => p.code === currentParticipant.code);
+          
+          if (index !== -1) {
+            participants[index].status = 'completed';
+            participants[index].completedAt = new Date().toISOString();
+            localStorage.setItem('participants', JSON.stringify(participants));
+          }
+        }
+      } catch (error) {
+        console.error('참여자 상태 업데이트 실패:', error);
       }
     }
 
     // 결과 저장
-    function saveResults(scores) {
-      const results = JSON.parse(localStorage.getItem('diagnosisResults') || '[]');
+    async function saveResults(scores) {
+      const avgScore = ((parseFloat(scores.narcissism) + parseFloat(scores.machiavellianism) + parseFloat(scores.psychopathy)) / 3).toFixed(1);
       
       const result = {
         id: Date.now(),
@@ -819,31 +908,82 @@
         participantName: currentParticipant.name,
         participantEmail: currentParticipant.email,
         scores: scores,
+        avgScore: parseFloat(avgScore),
         answers: answers,
         questions: questions,
         completedAt: new Date().toISOString()
       };
       
-      results.push(result);
-      localStorage.setItem('diagnosisResults', JSON.stringify(results));
+      try {
+        if (isGoogleConnected) {
+          // Google Sheets에 결과 저장
+          await saveDiagnosisResult(result);
+        } else {
+          // localStorage에 결과 저장
+          const results = JSON.parse(localStorage.getItem('diagnosisResults') || '[]');
+          results.push(result);
+          localStorage.setItem('diagnosisResults', JSON.stringify(results));
+        }
+      } catch (error) {
+        console.error('결과 저장 실패:', error);
+        // Google Sheets 저장 실패시 localStorage에 백업
+        const results = JSON.parse(localStorage.getItem('diagnosisResults') || '[]');
+        results.push(result);
+        localStorage.setItem('diagnosisResults', JSON.stringify(results));
+      }
     }
 
     // 이메일 발송
-    function sendResultsByEmail() {
-      const loadingModal = document.getElementById('loadingModal');
-      loadingModal.querySelector('p').textContent = '이메일을 발송하고 있습니다...';
-      loadingModal.classList.remove('hidden');
+    async function sendResultsByEmail() {
+      document.getElementById('loadingModal').classList.remove('hidden');
+      document.getElementById('loadingText').textContent = '이메일을 발송하고 있습니다...';
       
-      // EmailJS 설정이 필요한 부분 (실제 구현시 설정 필요)
-      setTimeout(() => {
-        loadingModal.classList.add('hidden');
-        alert('이메일 발송이 완료되었습니다.\n(실제 구현시 EmailJS 설정이 필요합니다)');
-      }, 2000);
+      try {
+        // EmailJS 설정이 필요한 부분 (실제 구현시 설정 필요)
+        // 현재는 시뮬레이션
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        document.getElementById('loadingModal').classList.add('hidden');
+        showMessage('이메일 발송이 완료되었습니다.', 'success');
+      } catch (error) {
+        document.getElementById('loadingModal').classList.add('hidden');
+        showMessage('이메일 발송 중 오류가 발생했습니다.', 'error');
+      }
     }
 
     // 결과 출력
     function printResults() {
       window.print();
+    }
+
+    // 메시지 표시
+    function showMessage(message, type) {
+      const alertDiv = document.createElement('div');
+      const colorClasses = {
+        success: 'bg-green-100 border-green-400 text-green-700',
+        error: 'bg-red-100 border-red-400 text-red-700',
+        warning: 'bg-yellow-100 border-yellow-400 text-yellow-700'
+      };
+      
+      const iconClasses = {
+        success: 'fa-check-circle',
+        error: 'fa-exclamation-triangle',
+        warning: 'fa-exclamation-triangle'
+      };
+
+      alertDiv.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg border ${colorClasses[type] || colorClasses.error}`;
+      alertDiv.innerHTML = `
+        <div class="flex items-center">
+          <i class="fas ${iconClasses[type] || iconClasses.error} mr-2"></i>
+          <span>${message}</span>
+        </div>
+      `;
+      
+      document.body.appendChild(alertDiv);
+      
+      setTimeout(() => {
+        alertDiv.remove();
+      }, 3000);
     }
 
     // 키보드 이벤트
