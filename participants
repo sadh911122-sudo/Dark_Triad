@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>참여자 관리 - 리더십 진단 관리자</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+    }
+    .nav-item {
+      transition: all 0.3s ease;
+    }
+    .nav-item:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+    .nav-item.active {
+      background-color: rgba(255, 255, 255, 0.2);
+      border-left: 4px solid #fff;
+    }
+    .modal {
+      transition: opacity 0.3s ease;
+    }
+    .modal.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  </style>
+</head>
+<body class="bg-gray-100">
+  
+  <!-- Navigation Sidebar -->
+  <div class="fixed inset-y-0 left-0 w-64 bg-gray-800 text-white">
+    <div class="p-6">
+      <h1 class="text-xl font-bold">관리자 대시보드</h1>
+      <p class="text-gray-400 text-sm" id="adminWelcome">환영합니다</p>
+    </div>
+    
+    <nav class="mt-8">
+      <a href="dashboard.html" class="nav-item flex items-center px-6 py-3 text-gray-300 hover:text-white">
+        <i class="fas fa-tachometer-alt mr-3"></i>대시보드
+      </a>
+      <a href="participants.html" class="nav-item active flex items-center px-6 py-3 text-gray-300 hover:text-white">
+        <i class="fas fa-users mr-3"></i>참여자 관리
+      </a>
+      <a href="feedback.html" class="nav-item flex items-center px-6 py-3 text-gray-300 hover:text-white">
+        <i class="fas fa-edit mr-3"></i>피드백 편집
+      </a>
+      <a href="#" class="nav-item flex items-center px-6 py-3 text-gray-300 hover:text-white" onclick="logout()">
+        <i class="fas fa-sign-out-alt mr-3"></i>로그아웃
+      </a>
+    </nav>
+  </div>
+
+  <!-- Main Content -->
+  <div class="ml-64 min-h-screen bg-gray-100">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-gray-200">
+      <div class="px-6 py-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-2xl font-semibold text-gray-800">참여자 관리</h2>
+          <div class="flex items-center space-x-4">
+            <div class="text-sm text-gray-600" id="currentDateTime"></div>
+            <button onclick="showAddParticipantModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+              <i class="fas fa-plus mr-1"></i>참여자 추가
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Content -->
+    <div class="p-6">
+      <!-- Search and Filter -->
+      <div class="bg-white rounded-lg shadow mb-6 p-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">검색</label>
+            <input type="text" id="searchInput" placeholder="이름, 이메일, 소속으로 검색..."
+                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                   onkeyup="filterParticipants()">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">상태 필터</label>
+            <select id="statusFilter" onchange="filterParticipants()"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+              <option value="">모든 상태</option>
+              <option value="not-started">미시작</option>
+              <option value="in-progress">진행 중</option>
+              <option value="completed">완료</option>
+            </select>
+          </div>
+          <div class="flex items-end">
+            <button onclick="refreshParticipants()" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg">
+              <i class="fas fa-sync-alt mr-1"></i>새로고침
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Participants Table -->
+      <div class="bg-white rounded-lg shadow">
+        <div class="p-6 border-b border-gray-200">
+          <div class="flex justify-between items-center">
+            <h3 class="text-lg font-semibold">참여자 목록</h3>
+            <div class="text-sm text-gray-600">
+              총 <span id="totalCount">0</span>명
+            </div>
+          </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">참여자</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">이메일</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">등록일</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">상태</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">진단 링크</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">작업</th>
+              </tr>
+            </thead>
+            <tbody id="participantsTableBody" class="bg-white divide-y divide-gray-200">
+              <tr>
+                <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                  참여자 데이터를 불러오는 중...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Participant Modal -->
+  <div id="addParticipantModal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 opacity-0 pointer-events-none">
+    <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+      <h3 class="text-lg font-semibold mb-4">새 참여자 추가</h3>
+      <form id="addParticipantForm">
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">이름 *</label>
+            <input type="text" id="participantName" required
+                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">이메일 *</label>
+            <input type="email" id="participantEmail" required
+                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">소속</label>
+            <input type="text" id="participantCompany"
+                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">직책</label>
+            <input type="text" id="participantPosition"
+                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+          </div>
+        </div>
+        <div class="flex justify-end space-x-3 mt-6">
+          <button type="button" onclick="closeAddParticipantModal()" 
+                  class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg">
+            취소
+          </button>
+          <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+            추가
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Participant Modal -->
+  <div id="editParticipantModal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 opacity-0 pointer-events-none">
+    <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+      <h3 class="text-lg font-semibold mb-4">참여자 정보 수정</h3>
+      <form id="editParticipantForm">
+        <input type="hidden" id="editParticipantCode">
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">이름 *</label>
+            <input type="text" id="editParticipantName" required
+                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">이메일 *</label>
+            <input type="email" id="editParticipantEmail" required
+                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">소속</label>
+            <input type="text" id="editParticipantCompany"
+                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">직책</label>
+            <input type="text" id="editParticipantPosition"
+                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+          </div>
+        </div>
+        <div class="flex justify-end space-x-3 mt-6">
+          <button type="button" onclick="closeEditParticipantModal()" 
+                  class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg">
+            취소
+          </button>
+          <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg">
+            수정
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    let participantsData = [];
+    let filteredData = [];
+
+    // 페이지 로드 시 인증 확인 및 초기화
+    document.addEventListener('DOMContentLoaded', function() {
+      // 인증 확인
+      const savedAdmin = localStorage.getItem('currentAdmin');
+      if (!savedAdmin) {
+        alert('로그인이 필요합니다.');
+        window.location.href = 'index.html';
+        return;
+      }
+      const currentAdmin = JSON.parse(savedAdmin);
+      document.getElementById('adminWelcome').textContent = `${currentAdmin.name}님 환영합니다`;
+      
+      // 초기화
+      updateDateTime();
+      setInterval(updateDateTime, 60000);
+      loadParticipants();
+      setupEventListeners();
+    });
+
+    // 이벤트 리스너 설정
+    function setupEventListeners() {
+      // 참여자 추가 폼
+      document.getElementById('addParticipantForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        addParticipant();
+      });
+
+      // 참여자 수정 폼
+      document.getElementById('editParticipantForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        updateParticipant();
+      });
+    }
+
+    // 현재 시간 업데이트
+    function updateDateTime() {
+      const now = new Date();
+      const dateTimeString = now.toLocaleString('ko-KR');
+      document.getElementById('currentDateTime').textContent = dateTimeString;
+    }
+
+    // 로그아웃
+    function logout() {
+      if (confirm('로그아웃 하시겠습니까?')) {
+        localStorage.removeItem('currentAdmin');
+        window.location.href = 'index.html';
+      }
+    }
+
+    // 참여자 데이터 로드
+    function loadParticipants() {
+      participantsData = JSON.parse(localStorage.getItem('participantsData') || '[]');
+      filteredData = [...participantsData];
+      renderParticipantsTable();
+      updateTotalCount();
+    }
+
+    // 참여자 테이블 렌더링
+    function renderParticipantsTable() {
+      const tableBody = document.getElementById('participantsTableBody');
+      
+      if (filteredData.length === 0) {
+        tableBody.innerHTML = `
+          <tr>
+            <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+              ${participantsData.length === 0 ? '등록된 참여자가 없습니다' : '검색 결과가 없습니다'}
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tableBody.innerHTML = filteredData.map(participant => `
+        <tr>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="flex items-center">
+              <div class="flex-shrink-0 h-10 w-10">
+                <div class="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
+                  <i class="fas fa-user text-gray-600"></i>
+                </div>
+              </div>
+              <div class="ml-4">
+                <div class="text-sm font-medium text-gray-900">${participant.name}</div>
+                <div class="text-sm text-gray-500">${participant.company || '-'}</div>
+              </div>
+            </div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+            ${participant.email}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+            ${new Date(participant.registeredAt).toLocaleDateString('ko-KR')}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <span class="px-2 py-1 text-xs font-medium rounded-full ${getStatusBadgeClass(participant.status)}">
+              ${getStatusText(participant.status)}
+            </span>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm">
+            <button onclick="copyDiagnosisLink('${participant.participantCode}')" 
+                    class="bg-blue-100 hover:bg-blue-200 text-blue-800 px-3 py-1 rounded text-xs">
+              <i class="fas fa-copy mr-1"></i>링크 복사
+            </button>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+            <button onclick="sendDiagnosisEmail('${participant.participantCode}')" 
+                    class="text-green-600 hover:text-green-900 mr-3">이메일 발송</button>
+            <button onclick="editParticipant('${participant.participantCode}')" 
+                    class="text-indigo-600 hover:text-indigo-900 mr-3">편집</button>
+            <button onclick="deleteParticipant('${participant.participantCode}')" 
+                    class="text-red-600 hover:text-red-900">삭제</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // 상태 배지 클래스 반환
+    function getStatusBadgeClass(status) {
+      switch (status) {
+        case 'completed': return 'bg-green-100 text-green-800';
+        case 'in-progress': return 'bg-yellow-100 text-yellow-800';
+        case 'not-started': return 'bg-red-100 text-red-800';
+        default: return 'bg-gray-100 text-gray-800';
+      }
+    }
+
+    // 상태 텍스트 반환
+    function getStatusText(status) {
+      switch (status) {
+        case 'completed': return '완료';
+        case 'in-progress': return '진행 중';
+        case 'not-started': return '미시작';
+        default: return '알 수 없음';
+      }
+    }
+
+    // 총 참여자 수 업데이트
+    function updateTotalCount() {
+      document.getElementById('totalCount').textContent = filteredData.length;
+    }
+
+    // 참여자 필터링
+    function filterParticipants() {
+      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+      const statusFilter = document.getElementById('statusFilter').value;
+      
+      filteredData = participantsData.filter(participant => {
+        const matchesSearch = searchTerm === '' || 
+          participant.name.toLowerCase().includes(searchTerm) ||
+          participant.email.toLowerCase().includes(searchTerm) ||
+          (participant.company && participant.company.toLowerCase().includes(searchTerm));
+        
+        const matchesStatus = statusFilter === '' || participant.status === statusFilter;
+        
+        return matchesSearch && matchesStatus;
+      });
+      
+      renderParticipantsTable();
+      updateTotalCount();
+    }
+
+    // 참여자 새로고침
+    function refreshParticipants() {
+      loadParticipants();
+      alert('참여자 목록이 새로고침되었습니다.');
+    }
+
+    // 참여자 추가 모달 표시
+    function showAddParticipantModal() {
+      document.getElementById('addParticipantModal').classList.add('show');
+    }
+
+    // 참여자 추가 모달 닫기
+    function closeAddParticipantModal() {
+      document.getElementById('addParticipantModal').classList.remove('show');
+      document.getElementById('addParticipantForm').reset();
+    }
+
+    // 참여코드 생성
+    function generateParticipantCode() {
+      return 'LDT' + Date.now().toString().slice(-8) + Math.random().toString(36).substr(2, 4).toUpperCase();
+    }
+
+    // 진단 URL 생성
+    function generateDiagnosisUrl(participantCode) {
+      const baseUrl = window.location.origin + window.location.pathname.replace('participants.html', '');
+      return `${baseUrl}../leadership-diagnosis/?code=${participantCode}`;
+    }
+
+    // 참여자 추가
+    function addParticipant() {
+      const participantData = {
+        participantCode: generateParticipantCode(),
+        name: document.getElementById('participantName').value,
+        email: document.getElementById('participantEmail').value,
+        company: document.getElementById('participantCompany').value,
+        position: document.getElementById('participantPosition').value,
+        registeredAt: new Date().toISOString(),
+        status: 'not-started'
+      };
+      
+      // 이메일 중복 체크
+      if (participantsData.find(p => p.email === participantData.email)) {
+        alert('이미 등록된 이메일입니다.');
+        return;
+      }
+      
+      // 데이터 추가
+      participantsData.push(participantData);
+      localStorage.setItem('participantsData', JSON.stringify(participantsData));
+      
+      // UI 업데이트
+      loadParticipants();
+      closeAddParticipantModal();
+      
+      alert(`${participantData.name}님이 성공적으로 등록되었습니다.`);
+    }
+
+    // 참여자 편집 모달 표시
+    function editParticipant(participantCode) {
+      const participant = participantsData.find(p => p.participantCode === participantCode);
+      if (!participant) {
+        alert('참여자를 찾을 수 없습니다.');
+        return;
+      }
+      
+      // 편집 폼에 데이터 채우기
+      document.getElementById('editParticipantCode').value = participant.participantCode;
+      document.getElementById('editParticipantName').value = participant.name;
+      document.getElementById('editParticipantEmail').value = participant.email;
+      document.getElementById('editParticipantCompany').value = participant.company || '';
+      document.getElementById('editParticipantPosition').value = participant.position || '';
+      
+      // 모달 표시
+      document.getElementById('editParticipantModal').classList.add('show');
+    }
+
+    // 참여자 편집 모달 닫기
+    function closeEditParticipantModal() {
+      document.getElementById('editParticipantModal').classList.remove('show');
+      document.getElementById('editParticipantForm').reset();
+    }
+
+    // 참여자 정보 수정
+    function updateParticipant() {
+      const participantCode = document.getElementById('editParticipantCode').value;
+      const participantIndex = participantsData.findIndex(p => p.participantCode === participantCode);
+      
+      if (participantIndex === -1) {
+        alert('참여자를 찾을 수 없습니다.');
+        return;
+      }
+      
+      // 이메일 중복 체크 (자신 제외)
+      const newEmail = document.getElementById('editParticipantEmail').value;
+      const existingParticipant = participantsData.find(p => p.email === newEmail && p.participantCode !== participantCode);
+      if (existingParticipant) {
+        alert('이미 사용 중인 이메일입니다.');
+        return;
+      }
+      
+      // 데이터 업데이트
+      participantsData[participantIndex] = {
+        ...participantsData[participantIndex],
+        name: document.getElementById('editParticipantName').value,
+        email: newEmail,
+        company: document.getElementById('editParticipantCompany').value,
+        position: document.getElementById('editParticipantPosition').value,
+        updatedAt: new Date().toISOString()
+      };
+      
+      localStorage.setItem('participantsData', JSON.stringify(participantsData));
+      
+      // UI 업데이트
+      loadParticipants();
+      closeEditParticipantModal();
+      
+      alert('참여자 정보가 수정되었습니다.');
+    }
+
+    // 참여자 삭제
+    function deleteParticipant(participantCode) {
+      const participant = participantsData.find(p => p.participantCode === participantCode);
+      if (!participant) {
+        alert('참여자를 찾을 수 없습니다.');
+        return;
+      }
+      
+      if (confirm(`${participant.name}님을 삭제하시겠습니까?\n관련된 모든 데이터가 삭제됩니다.`)) {
+        // 참여자 데이터에서 제거
+        participantsData = participantsData.filter(p => p.participantCode !== participantCode);
+        localStorage.setItem('participantsData', JSON.stringify(participantsData));
+        
+        // 결과 데이터에서도 제거
+        const resultsData = JSON.parse(localStorage.getItem('resultsData') || '[]');
+        const updatedResults = resultsData.filter(r => (r.participantCode || r.참여코드) !== participantCode);
+        localStorage.setItem('resultsData', JSON.stringify(updatedResults));
+        
+        // UI 업데이트
+        loadParticipants();
+        
+        alert('참여자가 삭제되었습니다.');
+      }
+    }
+
+    // 진단 링크 복사
+    function copyDiagnosisLink(participantCode) {
+      const diagnosisUrl = generateDiagnosisUrl(participantCode);
+      
+      // 클립보드에 복사
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(diagnosisUrl).then(() => {
+          alert('진단 링크가 클립보드에 복사되었습니다.');
+        }).catch(() => {
+          // 폴백: 텍스트 영역 사용
+          copyToClipboardFallback(diagnosisUrl);
+        });
+      } else {
+        // 폴백: 텍스트 영역 사용
+        copyToClipboardFallback(diagnosisUrl);
+      }
+    }
+
+    // 클립보드 복사 폴백 함수
+    function copyToClipboardFallback(text) {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        alert('진단 링크가 클립보드에 복사되었습니다.');
+      } catch (err) {
+        prompt('다음 링크를 복사하세요:', text);
+      }
+      document.body.removeChild(textArea);
+    }
+
+    // 진단 이메일 발송
+    function sendDiagnosisEmail(participantCode) {
+      const participant = participantsData.find(p => p.participantCode === participantCode);
+      if (!participant) {
+        alert('참여자를 찾을 수 없습니다.');
+        return;
+      }
+      
+      const diagnosisUrl = generateDiagnosisUrl(participantCode);
+      
+      // 이메일 템플릿 생성
+      const emailSubject = '리더십 다크 트라이어드 진단 참여 안내';
+      const emailBody = `안녕하세요, ${participant.name}님!
+
+리더십 다크 트라이어드 진단에 참여해주셔서 감사합니다.
+
+아래 링크를 클릭하여 진단을 시작해주세요:
+${diagnosisUrl}
+
+• 소요시간: 약 10-15분
+• 참여코드: ${participantCode}
+
+궁금한 사항이 있으시면 언제든 문의해주세요.
+
+감사합니다.`;
+      
+      // 실제 이메일 발송은 Google Apps Script나 다른 이메일 서비스 연동 필요
+      // 현재는 시뮬레이션
+      if (confirm(`${participant.name}님(${participant.email})에게 진단 링크를 발송하시겠습니까?`)) {
+        // 여기에 실제 이메일 발송 로직 구현
+        // sendEmailViaAPI(participant.email, emailSubject, emailBody);
+        
+        // 시뮬레이션: 발송 상태 업데이트
+        const participantIndex = participantsData.findIndex(p => p.participantCode === participantCode);
+        if (participantIndex !== -1) {
+          participantsData[participantIndex].emailSent = true;
+          participantsData[participantIndex].emailSentAt = new Date().toISOString();
+          localStorage.setItem('participantsData', JSON.stringify(participantsData));
+        }
+        
+        alert('진단 링크가 이메일로 발송되었습니다.');
+        loadParticipants();
+      }
+    }
+
+    // 일괄 작업 함수들
+    function selectAllParticipants() {
+      // 전체 선택 기능 (향후 구현)
+      console.log('전체 선택 기능');
+    }
+
+    function bulkEmailSend() {
+      const notStartedParticipants = participantsData.filter(p => p.status === 'not-started');
+      
+      if (notStartedParticipants.length === 0) {
+        alert('이메일을 발송할 참여자가 없습니다.');
+        return;
+      }
+      
+      if (confirm(`${notStartedParticipants.length}명에게 진단 링크를 일괄 발송하시겠습니까?`)) {
+        // 일괄 이메일 발송 로직
+        notStartedParticipants.forEach(participant => {
+          sendDiagnosisEmail(participant.participantCode);
+        });
+      }
+    }
+
+    // CSV 내보내기
+    function exportParticipants() {
+      if (participantsData.length === 0) {
+        alert('내보낼 참여자 데이터가 없습니다.');
+        return;
+      }
+      
+      const csvContent = convertParticipantsToCSV(participantsData);
+      downloadCSV(csvContent, `participants_${new Date().toISOString().split('T')[0]}.csv`);
+    }
+
+    // 참여자 데이터를 CSV로 변환
+    function convertParticipantsToCSV(data) {
+      const headers = ['참여코드', '이름', '이메일', '소속', '직책', '등록일', '상태', '진단링크'];
+      const rows = data.map(participant => [
+        participant.participantCode,
+        participant.name,
+        participant.email,
+        participant.company || '',
+        participant.position || '',
+        new Date(participant.registeredAt).toLocaleDateString('ko-KR'),
+        getStatusText(participant.status),
+        generateDiagnosisUrl(participant.participantCode)
+      ]);
+      
+      return [headers, ...rows].map(row => 
+        row.map(field => `"${field}"`).join(',')
+      ).join('\n');
+    }
+
+    // CSV 다운로드
+    function downloadCSV(csvContent, filename) {
+      const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      link.style.visibility = 'hidden';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // 키보드 단축키
+    document.addEventListener('keydown', function(e) {
+      // ESC 키로 모달 닫기
+      if (e.key === 'Escape') {
+        closeAddParticipantModal();
+        closeEditParticipantModal();
+      }
+      
+      // Ctrl+N으로 새 참여자 추가
+      if (e.ctrlKey && e.key === 'n') {
+        e.preventDefault();
+        showAddParticipantModal();
+      }
+    });
+  </script>
+</body>
+</html>
