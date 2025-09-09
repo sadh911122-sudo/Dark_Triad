@@ -48,7 +48,7 @@
           <label for="adminId" class="block text-sm font-medium text-gray-700 mb-2">
             <i class="fas fa-user mr-1"></i>관리자 ID
           </label>
-          <input type="text" id="adminId" required value="admin"
+          <input type="text" id="adminId" required
                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                  placeholder="관리자 ID를 입력하세요">
         </div>
@@ -57,7 +57,7 @@
           <label for="adminPassword" class="block text-sm font-medium text-gray-700 mb-2">
             <i class="fas fa-lock mr-1"></i>비밀번호
           </label>
-          <input type="password" id="adminPassword" required value="1234"
+          <input type="password" id="adminPassword" required
                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                  placeholder="비밀번호를 입력하세요">
         </div>
@@ -67,10 +67,12 @@
         </button>
       </form>
 
+      <!-- 기본 계정 안내 메시지 -->
       <div class="mt-6 text-center">
-        <button onclick="createTestAccount()" class="text-blue-600 hover:text-blue-800 text-sm underline">
-          테스트 계정 생성
-        </button>
+        <p class="text-sm text-gray-600 bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+          <i class="fas fa-info-circle mr-1 text-yellow-600"></i>
+          기본 계정: <strong>admin / 1234</strong>
+        </p>
       </div>
     </div>
   </div>
@@ -97,7 +99,7 @@
         <a href="admin-management.html" class="nav-item flex items-center px-6 py-3 text-gray-300 hover:text-white">
           <i class="fas fa-user-cog mr-3"></i>관리자 관리
         </a>
-        <a href="#" class="nav-item flex items-center px-6 py-3 text-gray-300 hover:text-white" onclick="logout()">
+        <a href="#" class="nav-item flex items-center px-6 py-3 text-gray-300 hover:text-white" onclick="handleLogout()">
           <i class="fas fa-sign-out-alt mr-3"></i>로그아웃
         </a>
       </nav>
@@ -112,7 +114,7 @@
             <h2 class="text-2xl font-semibold text-gray-800">리더십 진단 관리자</h2>
             <div class="flex items-center space-x-4">
               <div class="text-sm text-gray-600" id="currentDateTime"></div>
-              <button onclick="logout()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm">
+              <button onclick="handleLogout()" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm">
                 <i class="fas fa-sign-out-alt mr-1"></i>로그아웃
               </button>
             </div>
@@ -149,98 +151,81 @@
   </div>
 
   <script>
-    // 전역 변수
-    let currentAdmin = null;
-
     // 페이지 로드 시 초기화
     document.addEventListener('DOMContentLoaded', function() {
+      // auth.js 초기화 (기본 계정 생성 포함)
+      window.AdminAuth.initializeDefaultAccount();
+      
+      // 로그인 상태 확인
       checkLoginStatus();
+      
+      // 시간 업데이트
       updateDateTime();
       setInterval(updateDateTime, 60000);
       
-      // 로그인 폼 이벤트
+      // 로그인 폼 이벤트 등록
       document.getElementById('loginForm').addEventListener('submit', function(e) {
         e.preventDefault();
-        login();
+        handleLogin();
       });
     });
 
+    // 🆕 auth.js를 사용한 로그인 처리
+    function handleLogin() {
+      const username = document.getElementById('adminId').value.trim();
+      const password = document.getElementById('adminPassword').value;
+      
+      if (!username || !password) {
+        alert('아이디와 비밀번호를 모두 입력해주세요.');
+        return;
+      }
+      
+      // auth.js의 login 함수 사용
+      const result = window.AdminAuth.login(username, password);
+      
+      if (result.success) {
+        console.log('로그인 성공:', result.admin);
+        showMainLayout();
+      } else {
+        alert(result.message || '로그인에 실패했습니다.');
+        
+        // 입력 필드 초기화
+        document.getElementById('adminPassword').value = '';
+        document.getElementById('adminId').focus();
+      }
+    }
+
     // 로그인 상태 확인
     function checkLoginStatus() {
-      const savedAdmin = localStorage.getItem('currentAdmin');
-      if (savedAdmin) {
-        currentAdmin = JSON.parse(savedAdmin);
-        showMainLayout();
-      }
-    }
-
-    // 테스트 계정 생성
-    function createTestAccount() {
-      const testAdmin = {
-        id: 'admin',
-        password: '1234',
-        name: '관리자',
-        email: 'admin@example.com',
-        role: 'super_admin',
-        department: '시스템',
-        status: 'active',
-        createdAt: new Date().toISOString(),
-        lastLoginAt: null,
-        isDefault: true
-      };
+      // auth.js의 getCurrentAdmin 사용
+      const currentAdmin = window.AdminAuth.getCurrentAdmin();
       
-      const adminAccounts = JSON.parse(localStorage.getItem('adminAccounts') || '[]');
-      if (!adminAccounts.find(a => a.id === 'admin')) {
-        adminAccounts.push(testAdmin);
-        localStorage.setItem('adminAccounts', JSON.stringify(adminAccounts));
-        alert('테스트 계정이 생성되었습니다.\nID: admin\n비밀번호: 1234');
+      if (currentAdmin) {
+        console.log('이미 로그인된 사용자:', currentAdmin);
+        showMainLayout();
       } else {
-        alert('테스트 계정이 이미 존재합니다.');
+        // 로그인 섹션 표시
+        document.getElementById('loginSection').classList.remove('hidden');
+        document.getElementById('mainLayout').classList.add('hidden');
       }
     }
-
-// 로그인 함수 수정
-function login() {
-  const adminId = document.getElementById('adminId').value;
-  const password = document.getElementById('adminPassword').value;
-  
-  const savedAdmins = JSON.parse(localStorage.getItem('adminAccounts') || '[]');
-  const admin = savedAdmins.find(a => a.id === adminId && a.password === password && a.status === 'active');
-  
-  if (admin) {
-    // 마지막 로그인 시간 업데이트
-    admin.lastLoginAt = new Date().toISOString();
-    
-    // adminAccounts 배열 업데이트
-    const updatedAdmins = savedAdmins.map(a => a.id === admin.id ? admin : a);
-    localStorage.setItem('adminAccounts', JSON.stringify(updatedAdmins));
-    
-    // 현재 로그인한 관리자 정보 저장
-    localStorage.setItem('currentAdmin', JSON.stringify(admin));
-    
-    showMainLayout();
-  } else {
-    alert('아이디 또는 비밀번호가 올바르지 않거나 비활성화된 계정입니다.');
-  }
-}
 
     // 메인 레이아웃 표시
     function showMainLayout() {
       document.getElementById('loginSection').classList.add('hidden');
       document.getElementById('mainLayout').classList.remove('hidden');
       
-      if (currentAdmin) {
-        document.getElementById('adminWelcome').textContent = `${currentAdmin.name}님 환영합니다`;
-      }
+      // auth.js의 환영 메시지 업데이트 사용
+      window.AdminAuth.updateWelcomeMessage();
+      
+      // 활동 감지 시작
+      window.AdminAuth.setupActivityDetection();
     }
 
-    // 로그아웃
-    function logout() {
-      if (confirm('로그아웃 하시겠습니까?')) {
-        localStorage.removeItem('currentAdmin');
-        currentAdmin = null;
-        window.location.href = 'index.html';
-      }
+    // 🆕 auth.js를 사용한 로그아웃 처리
+    function handleLogout() {
+      // auth.js의 logout 함수 사용 (확인 메시지 포함)
+      window.AdminAuth.logout();
     }
 
     // 현재 시간 업데이트
@@ -253,22 +238,20 @@ function login() {
       }
     }
 
-    // 공통 인증 체크 함수 (다른 페이지에서 사용)
-    window.AdminAuth = {
-      checkAuth: function() {
-        const savedAdmin = localStorage.getItem('currentAdmin');
-        if (!savedAdmin) {
-          alert('로그인이 필요합니다.');
-          window.location.href = 'index.html';
-          return false;
-        }
-        return JSON.parse(savedAdmin);
-      },
-      
-      logout: function() {
-        localStorage.removeItem('currentAdmin');
-        window.location.href = 'index.html';
+    // Enter 키 처리
+    document.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter' && !document.getElementById('loginSection').classList.contains('hidden')) {
+        e.preventDefault();
+        handleLogin();
       }
+    });
+
+    // 개발자 도구 콘솔용 유틸리티
+    window.debugAuth = function() {
+      console.log('=== 인증 시스템 디버그 정보 ===');
+      console.log('세션 정보:', window.AdminAuth.getSessionInfo());
+      console.log('관리자 계정 목록:', JSON.parse(localStorage.getItem('adminAccounts') || '[]'));
+      console.log('현재 로그인:', window.AdminAuth.getCurrentAdmin());
     };
   </script>
 </body>
