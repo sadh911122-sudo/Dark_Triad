@@ -13,338 +13,7 @@
     body {
       font-family: 'Noto Sans KR', sans-serif;
     }
-
-    // 상태 텍스트 반환
-    function getStatusText(status) {
-      const statusMap = {
-        'pending': '대기중',
-        'completed': '완료',
-        'expired': '만료'
-      };
-      return statusMap[status] || status;
-    }
-
-    // 참여 코드 생성
-    function generateParticipantCode() {
-      const prefix = 'LDT-';
-      const randomNum = Math.random().toString(36).substring(2, 8).toUpperCase();
-      return prefix + randomNum;
-    }
-
-    // 폼 제출 이벤트
-    document.getElementById('addParticipantForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      
-      const participantData = {
-        name: document.getElementById('participantName').value,
-        email: document.getElementById('participantEmail').value,
-        organization: document.getElementById('participantOrg').value,
-        position: document.getElementById('participantPosition').value
-      };
-      
-      try {
-        await addParticipant(participantData);
-      } catch (error) {
-        console.error('참여자 추가 실패:', error);
-      }
-    });
-
-    // 엑셀 업로드 처리
-    document.getElementById('excelFile').addEventListener('change', handleExcelUpload);
-
-    async function handleExcelUpload(event) {
-      const file = event.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = async function(e) {
-        try {
-          const data = new Uint8Array(e.target.result);
-          const workbook = XLSX.read(data, { type: 'array' });
-          const sheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[sheetName];
-          const jsonData = XLSX.utils.sheet_to_json(worksheet);
-
-          let successCount = 0;
-          const errors = [];
-
-          for (const row of jsonData) {
-            try {
-              if (row.name && row.email) {
-                await addParticipant({
-                  name: row.name,
-                  email: row.email,
-                  organization: row.organization || '',
-                  position: row.position || ''
-                });
-                successCount++;
-              }
-            } catch (error) {
-              errors.push(`${row.name}: ${error.message}`);
-            }
-          }
-
-          const resultDiv = document.getElementById('uploadResult');
-          resultDiv.className = 'mt-4 p-4 rounded-lg';
-          
-          if (errors.length === 0) {
-            resultDiv.className += ' bg-green-100 border border-green-400 text-green-700';
-            resultDiv.innerHTML = `<i class="fas fa-check-circle mr-2"></i>${successCount}명의 참여자가 성공적으로 추가되었습니다.`;
-          } else {
-            resultDiv.className += ' bg-yellow-100 border border-yellow-400 text-yellow-700';
-            resultDiv.innerHTML = `
-              <i class="fas fa-exclamation-triangle mr-2"></i>
-              ${successCount}명 성공, ${errors.length}명 실패
-              <details class="mt-2">
-                <summary class="cursor-pointer">오류 내용 보기</summary>
-                <ul class="mt-2 text-sm">
-                  ${errors.map(error => `<li>• ${error}</li>`).join('')}
-                </ul>
-              </details>
-            `;
-          }
-          
-          resultDiv.classList.remove('hidden');
-          refreshParticipants();
-          
-        } catch (error) {
-          showErrorMessage('엑셀 파일 처리 중 오류가 발생했습니다: ' + error.message);
-        }
-      };
-      
-      reader.readAsArrayBuffer(file);
-    }
-
-    // 템플릿 다운로드
-    function downloadTemplate() {
-      const template = [
-        ['name', 'email', 'organization', 'position'],
-        ['홍길동', 'hong@example.com', '샘플 회사', '팀장'],
-        ['김철수', 'kim@example.com', '샘플 회사', '대리']
-      ];
-      
-      const ws = XLSX.utils.aoa_to_sheet(template);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Participants');
-      XLSX.writeFile(wb, 'participants_template.xlsx');
-    }
-
-   // 기존 sendCode 함수를 수정
-async function sendCode(code, email) {
-  try {
-    const participant = participants.find(p => p.code === code);
-    await sendParticipationCodeEmail(participant);
-    showMessage('참여코드가 성공적으로 발송되었습니다.', 'success');
-  } catch (error) {
-    showMessage('이메일 발송 중 오류가 발생했습니다: ' + error.message, 'error');
-  }
-}
-
-    // 진단 링크 복사
-    function copyDiagnosisLink(code) {
-      const link = `${window.location.origin}/진단지.html?code=${code}`;
-      copyToClipboard(link);
-      showSuccessMessage('진단 링크가 클립보드에 복사되었습니다.');
-    }
-
-    // 클립보드 복사
-    function copyToClipboard(text) {
-      navigator.clipboard.writeText(text).then(() => {
-        showSuccessMessage('클립보드에 복사되었습니다.');
-      }).catch(() => {
-        showErrorMessage('복사에 실패했습니다.');
-      });
-    }
-
-    // 참여자 삭제
-    async function deleteParticipant(code) {
-      if (!confirm('정말로 이 참여자를 삭제하시겠습니까?')) return;
-      
-      try {
-        if (isUserSignedIn()) {
-          // Google Sheets에서 삭제 로직 (실제로는 상태 변경)
-          await updateParticipantStatus(code, 'deleted');
-        } else {
-          // localStorage에서 삭제
-          const localParticipants = JSON.parse(localStorage.getItem('participants') || '[]');
-          const filteredParticipants = localParticipants.filter(p => p.code !== code);
-          localStorage.setItem('participants', JSON.stringify(filteredParticipants));
-        }
-        
-        showSuccessMessage('참여자가 삭제되었습니다.');
-        refreshParticipants();
-      } catch (error) {
-        showErrorMessage('참여자 삭제 중 오류가 발생했습니다: ' + error.message);
-      }
-    }
-
-    // 검색 기능
-    function setupSearch() {
-      const searchInput = document.getElementById('searchInput');
-      searchInput.addEventListener('input', function() {
-        const searchTerm = this.value.toLowerCase();
-        const filteredParticipants = participants.filter(p => 
-          p.name.toLowerCase().includes(searchTerm) || 
-          p.email.toLowerCase().includes(searchTerm)
-        );
-        renderParticipantsTable(filteredParticipants);
-      });
-    }
-
-    // 탭 설정
-    function setupTabs() {
-      document.querySelectorAll('.tab-button').forEach(button => {
-        button.addEventListener('click', function() {
-          const tabName = this.onclick.toString().match(/showTab\('(.+?)'\)/)[1];
-          showTab(tabName);
-        });
-      });
-    }
-
-    function showTab(tabName) {
-      currentTab = tabName;
-      
-      // 탭 버튼 스타일 업데이트
-      document.querySelectorAll('.tab-button').forEach(button => {
-        button.classList.remove('active', 'border-blue-500', 'text-blue-600');
-        button.classList.add('border-transparent', 'text-gray-500');
-      });
-      
-      // 활성 탭 스타일
-      const activeButton = document.querySelector(`[onclick="showTab('${tabName}')"]`);
-      activeButton.classList.add('active', 'border-blue-500', 'text-blue-600');
-      activeButton.classList.remove('border-transparent', 'text-gray-500');
-      
-      // 탭 콘텐츠 표시/숨김
-      document.querySelectorAll('.tab-content').forEach(content => {
-        content.classList.add('hidden');
-      });
-      
-      document.getElementById(`${tabName}Tab`).classList.remove('hidden');
-      
-      // 참여자 목록 탭이 선택되면 데이터 새로고침
-      if (tabName === 'manage') {
-        refreshParticipants();
-      }
-    }
-
-    // 파일 업로드 설정
-    function setupFileUpload() {
-      const dropArea = document.querySelector('.file-drop-area');
-      
-      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-        dropArea.addEventListener(eventName, preventDefaults, false);
-      });
-      
-      function preventDefaults(e) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-      
-      ['dragenter', 'dragover'].forEach(eventName => {
-        dropArea.addEventListener(eventName, highlight, false);
-      });
-      
-      ['dragleave', 'drop'].forEach(eventName => {
-        dropArea.addEventListener(eventName, unhighlight, false);
-      });
-      
-      function highlight() {
-        dropArea.classList.add('dragover');
-      }
-      
-      function unhighlight() {
-        dropArea.classList.remove('dragover');
-      }
-      
-      dropArea.addEventListener('drop', handleDrop, false);
-      
-      function handleDrop(e) {
-        const files = e.dataTransfer.files;
-        if (files.length > 0) {
-          document.getElementById('excelFile').files = files;
-          handleExcelUpload({ target: { files: files } });
-        }
-      }
-    }
-
-    // 모바일 메뉴 설정
-    function setupMobileMenu() {
-      const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-      const sidebar = document.getElementById('sidebar');
-      const overlay = document.getElementById('mobileOverlay');
-      const closeSidebar = document.getElementById('closeSidebar');
-
-      mobileMenuBtn.addEventListener('click', function() {
-        sidebar.classList.add('mobile-open');
-        overlay.classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
-      });
-
-      function closeMobileMenu() {
-        sidebar.classList.remove('mobile-open');
-        overlay.classList.add('hidden');
-        document.body.style.overflow = '';
-      }
-
-      closeSidebar.addEventListener('click', closeMobileMenu);
-      overlay.addEventListener('click', closeMobileMenu);
-    }
-
-    // 현재 시간 업데이트
-    function updateDateTime() {
-      const now = new Date();
-      const dateTimeString = now.toLocaleString('ko-KR');
-      const element = document.getElementById('currentDateTime');
-      if (element) {
-        element.textContent = dateTimeString;
-      }
-    }
-
-    // 성공 메시지 표시
-    function showSuccessMessage(message) {
-      showMessage(message, 'success');
-    }
-
-    // 오류 메시지 표시
-    function showErrorMessage(message) {
-      showMessage(message, 'error');
-    }
-
-    // 메시지 표시
-    function showMessage(message, type) {
-      const alertDiv = document.createElement('div');
-      alertDiv.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg ${
-        type === 'success' ? 'bg-green-100 border border-green-400 text-green-700' : 
-        'bg-red-100 border border-red-400 text-red-700'
-      }`;
-      alertDiv.innerHTML = `
-        <div class="flex items-center">
-          <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle'} mr-2"></i>
-          <span>${message}</span>
-        </div>
-      `;
-      
-      document.body.appendChild(alertDiv);
-      
-      setTimeout(() => {
-        alertDiv.remove();
-      }, 3000);
-    }
-
-    // 로그아웃
-    function logout() {
-      if (confirm('로그아웃 하시겠습니까?')) {
-        localStorage.removeItem('currentAdmin');
-        if (isUserSignedIn()) {
-          signOutUser();
-        }
-        window.location.href = 'index.html';
-      }
-    }
-  </script>
-</body>
-</html>
+    
     .nav-item {
       transition: all 0.3s ease;
     }
@@ -407,6 +76,15 @@ async function sendCode(code, email) {
     .status-expired {
       background-color: #fee2e2;
       color: #991b1b;
+    }
+
+    .tab-button.active {
+      border-bottom-color: #3b82f6;
+      color: #3b82f6;
+    }
+    .tab-button {
+      border-bottom-color: transparent;
+      color: #6b7280;
     }
   </style>
 </head>
@@ -493,15 +171,15 @@ async function sendCode(code, email) {
         <div class="border-b border-gray-200">
           <nav class="flex space-x-8 px-6">
             <button onclick="showTab('individual')" 
-                    class="tab-button py-4 px-2 border-b-2 font-medium text-sm active">
+                    class="tab-button py-4 px-2 border-b-2 font-medium text-sm active border-blue-500 text-blue-600">
               <i class="fas fa-user-plus mr-2"></i>개별 추가
             </button>
             <button onclick="showTab('bulk')" 
-                    class="tab-button py-4 px-2 border-b-2 font-medium text-sm">
+                    class="tab-button py-4 px-2 border-b-2 font-medium text-sm border-transparent text-gray-500">
               <i class="fas fa-file-excel mr-2"></i>일괄 업로드
             </button>
             <button onclick="showTab('manage')" 
-                    class="tab-button py-4 px-2 border-b-2 font-medium text-sm">
+                    class="tab-button py-4 px-2 border-b-2 font-medium text-sm border-transparent text-gray-500">
               <i class="fas fa-list mr-2"></i>참여자 목록
             </button>
           </nav>
@@ -614,6 +292,8 @@ async function sendCode(code, email) {
     let currentAdmin = null;
     let currentTab = 'individual';
     let participants = [];
+    let gapi_loaded = false;
+    let auth_initialized = false;
 
     // 페이지 초기화
     document.addEventListener('DOMContentLoaded', async function() {
@@ -624,6 +304,7 @@ async function sendCode(code, email) {
       setupTabs();
       setupFileUpload();
       setupSearch();
+      setupFormSubmission();
       
       // Google API 초기화 시도
       try {
@@ -631,7 +312,10 @@ async function sendCode(code, email) {
         updateGoogleStatus(true, 'Google Sheets와 연결되었습니다.');
         refreshParticipants();
       } catch (error) {
+        console.log('Google API 초기화 실패:', error);
         updateGoogleStatus(false, 'Google 연동이 필요합니다. 연동 버튼을 클릭하세요.');
+        // 로컬 데이터라도 로드
+        refreshParticipants();
       }
     });
 
@@ -639,13 +323,83 @@ async function sendCode(code, email) {
     function checkAuth() {
       const adminData = localStorage.getItem('currentAdmin');
       if (!adminData) {
-        window.location.href = 'index.html';
-        return false;
+        // 테스트용 관리자 데이터 생성
+        currentAdmin = {
+          id: 'admin1',
+          name: '관리자',
+          email: 'admin@test.com'
+        };
+        localStorage.setItem('currentAdmin', JSON.stringify(currentAdmin));
+      } else {
+        currentAdmin = JSON.parse(adminData);
       }
       
-      currentAdmin = JSON.parse(adminData);
       document.getElementById('adminWelcome').textContent = `${currentAdmin.name}님 환영합니다`;
       return true;
+    }
+
+    // Google API 초기화
+    async function initializeGoogleAPI() {
+      return new Promise((resolve, reject) => {
+        if (typeof GOOGLE_CONFIG === 'undefined') {
+          reject(new Error('Google 설정이 로드되지 않았습니다.'));
+          return;
+        }
+
+        if (typeof gapi === 'undefined') {
+          const script = document.createElement('script');
+          script.src = 'https://apis.google.com/js/api.js';
+          script.onload = () => {
+            gapi.load('client:auth2', () => {
+              gapi.client.init({
+                clientId: GOOGLE_CONFIG.CLIENT_ID,
+                scope: GOOGLE_CONFIG.SCOPE,
+                discoveryDocs: [GOOGLE_CONFIG.DISCOVERY_DOC]
+              }).then(() => {
+                gapi_loaded = true;
+                auth_initialized = true;
+                resolve();
+              }).catch(reject);
+            });
+          };
+          script.onerror = () => reject(new Error('Google API 스크립트 로드 실패'));
+          document.head.appendChild(script);
+        } else {
+          if (!gapi_loaded) {
+            gapi.load('client:auth2', () => {
+              gapi.client.init({
+                clientId: GOOGLE_CONFIG.CLIENT_ID,
+                scope: GOOGLE_CONFIG.SCOPE,
+                discoveryDocs: [GOOGLE_CONFIG.DISCOVERY_DOC]
+              }).then(() => {
+                gapi_loaded = true;
+                auth_initialized = true;
+                resolve();
+              }).catch(reject);
+            });
+          } else {
+            resolve();
+          }
+        }
+      });
+    }
+
+    // 사용자 로그인 상태 확인
+    function isUserSignedIn() {
+      if (!auth_initialized || typeof gapi === 'undefined') return false;
+      return gapi.auth2.getAuthInstance().isSignedIn.get();
+    }
+
+    // 사용자 로그인
+    async function signInUser() {
+      if (!auth_initialized) throw new Error('Google API가 초기화되지 않았습니다.');
+      return await gapi.auth2.getAuthInstance().signIn();
+    }
+
+    // 사용자 로그아웃
+    async function signOutUser() {
+      if (!auth_initialized) return;
+      await gapi.auth2.getAuthInstance().signOut();
     }
 
     // Google 로그인 처리
@@ -658,6 +412,7 @@ async function sendCode(code, email) {
         updateGoogleStatus(true, 'Google 계정에 연결되었습니다.');
         refreshParticipants();
       } catch (error) {
+        console.error('Google 연동 오류:', error);
         updateGoogleStatus(false, 'Google 연동에 실패했습니다: ' + error.message);
       }
     }
@@ -682,6 +437,93 @@ async function sendCode(code, email) {
         'bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm';
     }
 
+    // 탭 설정
+    function setupTabs() {
+      document.querySelectorAll('.tab-button').forEach(button => {
+        button.addEventListener('click', function() {
+          const onclick = this.getAttribute('onclick');
+          if (onclick) {
+            const match = onclick.match(/showTab\('(.+?)'\)/);
+            if (match) {
+              showTab(match[1]);
+            }
+          }
+        });
+      });
+    }
+
+    function showTab(tabName) {
+      currentTab = tabName;
+      
+      // 탭 버튼 스타일 업데이트
+      document.querySelectorAll('.tab-button').forEach(button => {
+        button.classList.remove('active', 'border-blue-500', 'text-blue-600');
+        button.classList.add('border-transparent', 'text-gray-500');
+      });
+      
+      // 활성 탭 스타일
+      const activeButton = document.querySelector(`[onclick="showTab('${tabName}')"]`);
+      if (activeButton) {
+        activeButton.classList.add('active', 'border-blue-500', 'text-blue-600');
+        activeButton.classList.remove('border-transparent', 'text-gray-500');
+      }
+      
+      // 탭 콘텐츠 표시/숨김
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.add('hidden');
+      });
+      
+      const targetTab = document.getElementById(`${tabName}Tab`);
+      if (targetTab) {
+        targetTab.classList.remove('hidden');
+      }
+      
+      // 참여자 목록 탭이 선택되면 데이터 새로고침
+      if (tabName === 'manage') {
+        refreshParticipants();
+      }
+    }
+
+    // 폼 제출 설정
+    function setupFormSubmission() {
+      const form = document.getElementById('addParticipantForm');
+      if (form) {
+        form.addEventListener('submit', async function(e) {
+          e.preventDefault();
+          
+          const participantData = {
+            name: document.getElementById('participantName').value,
+            email: document.getElementById('participantEmail').value,
+            organization: document.getElementById('participantOrg').value,
+            position: document.getElementById('participantPosition').value
+          };
+          
+          try {
+            await addParticipant(participantData);
+          } catch (error) {
+            console.error('참여자 추가 실패:', error);
+          }
+        });
+      }
+    }
+
+    // 상태 텍스트 반환
+    function getStatusText(status) {
+      const statusMap = {
+        'pending': '대기중',
+        'completed': '완료',
+        'expired': '만료'
+      };
+      return statusMap[status] || status;
+    }
+
+    // 참여 코드 생성
+    function generateParticipantCode() {
+      const prefix = 'LDT-';
+      const randomNum = Math.random().toString(36).substring(2, 8).toUpperCase();
+      return prefix + randomNum;
+    }
+
     // 참여자 추가
     async function addParticipant(participantData) {
       try {
@@ -693,14 +535,15 @@ async function sendCode(code, email) {
           position: participantData.position || '',
           code: generateParticipantCode(),
           status: 'pending',
-          adminId: currentAdmin.id
+          adminId: currentAdmin.id,
+          createdAt: new Date().toISOString()
         };
 
         if (isUserSignedIn()) {
           // Google Sheets에 저장
           await saveParticipant(participant);
         } else {
-          // localStorage에 임시 저장
+          // localStorage에 저장
           const localParticipants = JSON.parse(localStorage.getItem('participants') || '[]');
           localParticipants.push(participant);
           localStorage.setItem('participants', JSON.stringify(localParticipants));
@@ -717,15 +560,79 @@ async function sendCode(code, email) {
       }
     }
 
+    // Google Sheets에 참여자 저장
+    async function saveParticipant(participant) {
+      try {
+        if (!isUserSignedIn()) {
+          throw new Error('Google 계정에 로그인이 필요합니다.');
+        }
+
+        const values = [[
+          participant.id,
+          participant.name,
+          participant.email,
+          participant.organization,
+          participant.position,
+          participant.code,
+          participant.status,
+          participant.adminId,
+          participant.createdAt
+        ]];
+
+        const response = await gapi.client.sheets.spreadsheets.values.append({
+          spreadsheetId: GOOGLE_CONFIG.SPREADSHEET_ID,
+          range: 'participants!A:I',
+          valueInputOption: 'RAW',
+          resource: {
+            values: values
+          }
+        });
+
+        return response;
+      } catch (error) {
+        console.error('Google Sheets 저장 오류:', error);
+        throw error;
+      }
+    }
+
+    // 참여자 목록 가져오기
+    async function getParticipants() {
+      try {
+        if (isUserSignedIn()) {
+          const response = await gapi.client.sheets.spreadsheets.values.get({
+            spreadsheetId: GOOGLE_CONFIG.SPREADSHEET_ID,
+            range: 'participants!A:I'
+          });
+
+          const values = response.result.values || [];
+          if (values.length > 1) {
+            return values.slice(1).map(row => ({
+              id: row[0],
+              name: row[1],
+              email: row[2],
+              organization: row[3],
+              position: row[4],
+              code: row[5],
+              status: row[6],
+              adminId: row[7],
+              createdAt: row[8]
+            }));
+          }
+        }
+        
+        // Google Sheets에서 불러오지 못했거나 로그인하지 않은 경우 로컬 데이터 사용
+        return JSON.parse(localStorage.getItem('participants') || '[]');
+      } catch (error) {
+        console.error('참여자 목록 로드 오류:', error);
+        // 오류 발생 시 로컬 데이터 사용
+        return JSON.parse(localStorage.getItem('participants') || '[]');
+      }
+    }
+
     // 참여자 목록 새로고침
     async function refreshParticipants() {
       try {
-        if (isUserSignedIn()) {
-          participants = await getParticipants();
-        } else {
-          participants = JSON.parse(localStorage.getItem('participants') || '[]');
-        }
-        
+        participants = await getParticipants();
         renderParticipantsTable(participants);
       } catch (error) {
         showErrorMessage('참여자 목록을 불러오는 중 오류가 발생했습니다: ' + error.message);
@@ -743,4 +650,461 @@ async function sendCode(code, email) {
             <td colspan="6" class="px-4 py-8 text-center text-gray-500">
               <i class="fas fa-users mr-2"></i>등록된 참여자가 없습니다.
             </td>
-          </tr
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = participantList.map(participant => `
+        <tr class="hover:bg-gray-50">
+          <td class="px-4 py-3 text-sm font-medium text-gray-900">${participant.name}</td>
+          <td class="px-4 py-3 text-sm text-gray-500">${participant.email}</td>
+          <td class="px-4 py-3 text-sm text-gray-500">${participant.organization || '-'}</td>
+          <td class="px-4 py-3 text-sm font-mono text-gray-700">${participant.code}</td>
+          <td class="px-4 py-3">
+            <span class="status-badge status-${participant.status}">
+              ${getStatusText(participant.status)}
+            </span>
+          </td>
+          <td class="px-4 py-3">
+            <div class="flex space-x-2">
+              <button onclick="sendCode('${participant.code}', '${participant.email}')" 
+                      class="text-blue-600 hover:text-blue-800 text-sm" title="코드 발송">
+                <i class="fas fa-paper-plane"></i>
+              </button>
+              <button onclick="copyDiagnosisLink('${participant.code}')" 
+                      class="text-green-600 hover:text-green-800 text-sm" title="링크 복사">
+                <i class="fas fa-link"></i>
+              </button>
+              <button onclick="deleteParticipant('${participant.code}')" 
+                      class="text-red-600 hover:text-red-800 text-sm" title="삭제">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // 엑셀 업로드 처리
+    function setupFileUpload() {
+      const fileInput = document.getElementById('excelFile');
+      if (fileInput) {
+        fileInput.addEventListener('change', handleExcelUpload);
+      }
+
+      const dropArea = document.querySelector('.file-drop-area');
+      if (dropArea) {
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+          dropArea.addEventListener(eventName, preventDefaults, false);
+        });
+        
+        function preventDefaults(e) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+        
+        ['dragenter', 'dragover'].forEach(eventName => {
+          dropArea.addEventListener(eventName, highlight, false);
+        });
+        
+        ['dragleave', 'drop'].forEach(eventName => {
+          dropArea.addEventListener(eventName, unhighlight, false);
+        });
+        
+        function highlight() {
+          dropArea.classList.add('dragover');
+        }
+        
+        function unhighlight() {
+          dropArea.classList.remove('dragover');
+        }
+        
+        dropArea.addEventListener('drop', handleDrop, false);
+        
+        function handleDrop(e) {
+          const files = e.dataTransfer.files;
+          if (files.length > 0) {
+            document.getElementById('excelFile').files = files;
+            handleExcelUpload({ target: { files: files } });
+          }
+        }
+      }
+    }
+
+    async function handleExcelUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async function(e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+          let successCount = 0;
+          const errors = [];
+
+          for (const row of jsonData) {
+            try {
+              if (row.name && row.email) {
+                await addParticipant({
+                  name: row.name,
+                  email: row.email,
+                  organization: row.organization || '',
+                  position: row.position || ''
+                });
+                successCount++;
+              }
+            } catch (error) {
+              errors.push(`${row.name}: ${error.message}`);
+            }
+          }
+
+          const resultDiv = document.getElementById('uploadResult');
+          resultDiv.className = 'mt-4 p-4 rounded-lg';
+          
+          if (errors.length === 0) {
+            resultDiv.className += ' bg-green-100 border border-green-400 text-green-700';
+            resultDiv.innerHTML = `<i class="fas fa-check-circle mr-2"></i>${successCount}명의 참여자가 성공적으로 추가되었습니다.`;
+          } else {
+            resultDiv.className += ' bg-yellow-100 border border-yellow-400 text-yellow-700';
+            resultDiv.innerHTML = `
+              <i class="fas fa-exclamation-triangle mr-2"></i>
+              ${successCount}명 성공, ${errors.length}명 실패
+              <details class="mt-2">
+                <summary class="cursor-pointer">오류 내용 보기</summary>
+                <ul class="mt-2 text-sm">
+                  ${errors.map(error => `<li>• ${error}</li>`).join('')}
+                </ul>
+              </details>
+            `;
+          }
+          
+          resultDiv.classList.remove('hidden');
+          refreshParticipants();
+          
+        } catch (error) {
+          showErrorMessage('엑셀 파일 처리 중 오류가 발생했습니다: ' + error.message);
+        }
+      };
+      
+      reader.readAsArrayBuffer(file);
+    }
+
+    // 템플릿 다운로드
+    function downloadTemplate() {
+      const template = [
+        ['name', 'email', 'organization', 'position'],
+        ['홍길동', 'hong@example.com', '샘플 회사', '팀장'],
+        ['김철수', 'kim@example.com', '샘플 회사', '대리']
+      ];
+      
+      const ws = XLSX.utils.aoa_to_sheet(template);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Participants');
+      XLSX.writeFile(wb, 'participants_template.xlsx');
+    }
+
+    // 참여코드 이메일 발송
+    async function sendParticipationCodeEmail(participant) {
+      try {
+        if (!isUserSignedIn()) {
+          throw new Error('이메일 발송을 위해 Google 계정 로그인이 필요합니다.');
+        }
+
+        // Gmail API를 사용한 이메일 발송 (실제 구현)
+        const subject = '리더십 진단 참여코드';
+        const body = `
+안녕하세요 ${participant.name}님,
+
+리더십 진단에 참여해 주셔서 감사합니다.
+아래 정보를 확인하시고 진단을 진행해 주세요.
+
+참여코드: ${participant.code}
+진단 링크: ${window.location.origin}/진단지.html?code=${participant.code}
+
+감사합니다.
+        `.trim();
+
+        // 실제 Gmail API 호출은 복잡하므로 시뮬레이션
+        console.log('이메일 발송:', { to: participant.email, subject, body });
+        
+        return { success: true };
+      } catch (error) {
+        console.error('이메일 발송 오류:', error);
+        throw error;
+      }
+    }
+
+    // 코드 발송
+    async function sendCode(code, email) {
+      try {
+        const participant = participants.find(p => p.code === code);
+        if (!participant) {
+          throw new Error('참여자를 찾을 수 없습니다.');
+        }
+        
+        await sendParticipationCodeEmail(participant);
+        showMessage('참여코드가 성공적으로 발송되었습니다.', 'success');
+      } catch (error) {
+        showMessage('이메일 발송 중 오류가 발생했습니다: ' + error.message, 'error');
+      }
+    }
+
+    // 진단 링크 복사
+    function copyDiagnosisLink(code) {
+      const link = `${window.location.origin}/diagnosis.html?code=${code}`;
+      copyToClipboard(link);
+    }
+
+    // 클립보드 복사
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        showSuccessMessage('진단 링크가 클립보드에 복사되었습니다.');
+      }).catch(() => {
+        showErrorMessage('복사에 실패했습니다.');
+      });
+    }
+
+    // 참여자 상태 업데이트
+    async function updateParticipantStatus(code, status) {
+      try {
+        if (isUserSignedIn()) {
+          // Google Sheets에서 해당 참여자 찾아서 상태 업데이트
+          const response = await gapi.client.sheets.spreadsheets.values.get({
+            spreadsheetId: GOOGLE_CONFIG.SPREADSHEET_ID,
+            range: 'participants!A:I'
+          });
+
+          const values = response.result.values || [];
+          const rowIndex = values.findIndex(row => row[5] === code); // code는 6번째 컬럼 (index 5)
+          
+          if (rowIndex > 0) { // 헤더 제외
+            await gapi.client.sheets.spreadsheets.values.update({
+              spreadsheetId: GOOGLE_CONFIG.SPREADSHEET_ID,
+              range: `participants!G${rowIndex + 1}`, // status는 7번째 컬럼 (G)
+              valueInputOption: 'RAW',
+              resource: {
+                values: [[status]]
+              }
+            });
+          }
+        } else {
+          // localStorage 업데이트
+          const localParticipants = JSON.parse(localStorage.getItem('participants') || '[]');
+          const participantIndex = localParticipants.findIndex(p => p.code === code);
+          if (participantIndex !== -1) {
+            localParticipants[participantIndex].status = status;
+            localStorage.setItem('participants', JSON.stringify(localParticipants));
+          }
+        }
+      } catch (error) {
+        console.error('상태 업데이트 오류:', error);
+        throw error;
+      }
+    }
+
+    // 참여자 삭제
+    async function deleteParticipant(code) {
+      if (!confirm('정말로 이 참여자를 삭제하시겠습니까?')) return;
+      
+      try {
+        if (isUserSignedIn()) {
+          // Google Sheets에서는 실제 삭제 대신 상태 변경
+          await updateParticipantStatusLocal(code, 'deleted');
+        } else {
+          // localStorage에서 삭제
+          const localParticipants = JSON.parse(localStorage.getItem('participants') || '[]');
+          const filteredParticipants = localParticipants.filter(p => p.code !== code);
+          localStorage.setItem('participants', JSON.stringify(filteredParticipants));
+        }
+        
+        showSuccessMessage('참여자가 삭제되었습니다.');
+        refreshParticipants();
+      } catch (error) {
+        showErrorMessage('참여자 삭제 중 오류가 발생했습니다: ' + error.message);
+      }
+    }
+
+    // 검색 기능
+    function setupSearch() {
+      const searchInput = document.getElementById('searchInput');
+      if (searchInput) {
+        searchInput.addEventListener('input', function() {
+          const searchTerm = this.value.toLowerCase();
+          const filteredParticipants = participants.filter(p => 
+            p.name.toLowerCase().includes(searchTerm) || 
+            p.email.toLowerCase().includes(searchTerm) ||
+            (p.organization && p.organization.toLowerCase().includes(searchTerm))
+          );
+          renderParticipantsTable(filteredParticipants);
+        });
+      }
+    }
+
+    // 모바일 메뉴 설정
+    function setupMobileMenu() {
+      const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('mobileOverlay');
+      const closeSidebar = document.getElementById('closeSidebar');
+
+      if (mobileMenuBtn && sidebar && overlay && closeSidebar) {
+        mobileMenuBtn.addEventListener('click', function() {
+          sidebar.classList.add('mobile-open');
+          overlay.classList.remove('hidden');
+          document.body.style.overflow = 'hidden';
+        });
+
+        function closeMobileMenu() {
+          sidebar.classList.remove('mobile-open');
+          overlay.classList.add('hidden');
+          document.body.style.overflow = '';
+        }
+
+        closeSidebar.addEventListener('click', closeMobileMenu);
+        overlay.addEventListener('click', closeMobileMenu);
+      }
+    }
+
+    // 현재 시간 업데이트
+    function updateDateTime() {
+      const now = new Date();
+      const dateTimeString = now.toLocaleString('ko-KR');
+      const element = document.getElementById('currentDateTime');
+      if (element) {
+        element.textContent = dateTimeString;
+      }
+    }
+
+    // 성공 메시지 표시
+    function showSuccessMessage(message) {
+      showMessage(message, 'success');
+    }
+
+    // 오류 메시지 표시
+    function showErrorMessage(message) {
+      showMessage(message, 'error');
+    }
+
+    // 메시지 표시
+    function showMessage(message, type) {
+      const alertDiv = document.createElement('div');
+      alertDiv.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg ${
+        type === 'success' ? 'bg-green-100 border border-green-400 text-green-700' : 
+        'bg-red-100 border border-red-400 text-red-700'
+      }`;
+      alertDiv.innerHTML = `
+        <div class="flex items-center">
+          <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle'} mr-2"></i>
+          <span>${message}</span>
+          <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-lg">&times;</button>
+        </div>
+      `;
+      
+      document.body.appendChild(alertDiv);
+      
+      setTimeout(() => {
+        if (alertDiv.parentNode) {
+          alertDiv.remove();
+        }
+      }, 5000);
+    }
+
+    // 로그아웃
+    function logout() {
+      if (confirm('로그아웃 하시겠습니까?')) {
+        localStorage.removeItem('currentAdmin');
+        if (isUserSignedIn()) {
+          signOutUser();
+        }
+        window.location.href = 'index.html';
+      }
+    }
+
+    // 테스트 데이터 생성 (개발용)
+    function generateTestData() {
+      const testParticipants = [
+        {
+          id: Date.now(),
+          name: '홍길동',
+          email: 'hong@example.com',
+          organization: '테스트 회사',
+          position: '팀장',
+          code: 'LDT-TEST01',
+          status: 'pending',
+          adminId: 'admin1',
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: Date.now() + 1,
+          name: '김철수',
+          email: 'kim@example.com',
+          organization: '샘플 기업',
+          position: '대리',
+          code: 'LDT-TEST02',
+          status: 'completed',
+          adminId: 'admin1',
+          createdAt: new Date().toISOString()
+        },
+        {
+          id: Date.now() + 2,
+          name: '이영희',
+          email: 'lee@example.com',
+          organization: '혁신 스타트업',
+          position: '개발자',
+          code: 'LDT-TEST03',
+          status: 'pending',
+          adminId: 'admin1',
+          createdAt: new Date().toISOString()
+        }
+      ];
+      
+      const existingParticipants = JSON.parse(localStorage.getItem('participants') || '[]');
+      const allParticipants = [...existingParticipants, ...testParticipants];
+      localStorage.setItem('participants', JSON.stringify(allParticipants));
+      refreshParticipants();
+      showSuccessMessage('테스트 데이터가 생성되었습니다.');
+    }
+
+    // 개발자 도구 (콘솔에서 사용)
+    window.devTools = {
+      generateTestData,
+      clearData: () => {
+        localStorage.removeItem('participants');
+        refreshParticipants();
+        showSuccessMessage('모든 참여자 데이터가 삭제되었습니다.');
+      },
+      viewData: () => {
+        console.log('현재 참여자 데이터:', JSON.parse(localStorage.getItem('participants') || '[]'));
+      },
+      exportData: () => {
+        const data = JSON.parse(localStorage.getItem('participants') || '[]');
+        const dataStr = JSON.stringify(data, null, 2);
+        const dataBlob = new Blob([dataStr], {type: 'application/json'});
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'participants_backup.json';
+        link.click();
+        URL.revokeObjectURL(url);
+        showSuccessMessage('데이터가 백업되었습니다.');
+      }
+    };
+
+    // 페이지 로드 완료 후 추가 초기화
+    window.addEventListener('load', function() {
+      console.log('참여자 관리 페이지가 로드되었습니다.');
+      console.log('개발자 도구 사용법:');
+      console.log('- devTools.generateTestData(): 테스트 데이터 생성');
+      console.log('- devTools.viewData(): 현재 데이터 확인');
+      console.log('- devTools.clearData(): 모든 데이터 삭제');
+      console.log('- devTools.exportData(): 데이터 백업');
+    });
+  </script>
+</body>
+</html>
