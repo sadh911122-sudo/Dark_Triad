@@ -1,3 +1,17 @@
+console.log('config.js 파일 실행 시작');
+
+// 기존 GOOGLE_CONFIG 선언 전에
+console.log('GOOGLE_CONFIG 선언 전');
+
+const GOOGLE_CONFIG = {
+  // 기존 설정...
+};
+
+console.log('GOOGLE_CONFIG 선언 완료:', GOOGLE_CONFIG);
+
+// 파일 끝에
+console.log('config.js 파일 실행 완료');
+
 // config.js - Google Sheets API 설정
 // 실제 사용시 YOUR_XXXXX 부분을 실제 값으로 교체하세요
 
