@@ -6,12 +6,349 @@
   <title>참여자 관리 - 리더십 진단 관리자</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="config.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
   <style>
     body {
       font-family: 'Noto Sans KR', sans-serif;
     }
+
+    // 상태 텍스트 반환
+    function getStatusText(status) {
+      const statusMap = {
+        'pending': '대기중',
+        'completed': '완료',
+        'expired': '만료'
+      };
+      return statusMap[status] || status;
+    }
+
+    // 참여 코드 생성
+    function generateParticipantCode() {
+      const prefix = 'LDT-';
+      const randomNum = Math.random().toString(36).substring(2, 8).toUpperCase();
+      return prefix + randomNum;
+    }
+
+    // 폼 제출 이벤트
+    document.getElementById('addParticipantForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const participantData = {
+        name: document.getElementById('participantName').value,
+        email: document.getElementById('participantEmail').value,
+        organization: document.getElementById('participantOrg').value,
+        position: document.getElementById('participantPosition').value
+      };
+      
+      try {
+        await addParticipant(participantData);
+      } catch (error) {
+        console.error('참여자 추가 실패:', error);
+      }
+    });
+
+    // 엑셀 업로드 처리
+    document.getElementById('excelFile').addEventListener('change', handleExcelUpload);
+
+    async function handleExcelUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = async function(e) {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const sheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[sheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+          let successCount = 0;
+          const errors = [];
+
+          for (const row of jsonData) {
+            try {
+              if (row.name && row.email) {
+                await addParticipant({
+                  name: row.name,
+                  email: row.email,
+                  organization: row.organization || '',
+                  position: row.position || ''
+                });
+                successCount++;
+              }
+            } catch (error) {
+              errors.push(`${row.name}: ${error.message}`);
+            }
+          }
+
+          const resultDiv = document.getElementById('uploadResult');
+          resultDiv.className = 'mt-4 p-4 rounded-lg';
+          
+          if (errors.length === 0) {
+            resultDiv.className += ' bg-green-100 border border-green-400 text-green-700';
+            resultDiv.innerHTML = `<i class="fas fa-check-circle mr-2"></i>${successCount}명의 참여자가 성공적으로 추가되었습니다.`;
+          } else {
+            resultDiv.className += ' bg-yellow-100 border border-yellow-400 text-yellow-700';
+            resultDiv.innerHTML = `
+              <i class="fas fa-exclamation-triangle mr-2"></i>
+              ${successCount}명 성공, ${errors.length}명 실패
+              <details class="mt-2">
+                <summary class="cursor-pointer">오류 내용 보기</summary>
+                <ul class="mt-2 text-sm">
+                  ${errors.map(error => `<li>• ${error}</li>`).join('')}
+                </ul>
+              </details>
+            `;
+          }
+          
+          resultDiv.classList.remove('hidden');
+          refreshParticipants();
+          
+        } catch (error) {
+          showErrorMessage('엑셀 파일 처리 중 오류가 발생했습니다: ' + error.message);
+        }
+      };
+      
+      reader.readAsArrayBuffer(file);
+    }
+
+    // 템플릿 다운로드
+    function downloadTemplate() {
+      const template = [
+        ['name', 'email', 'organization', 'position'],
+        ['홍길동', 'hong@example.com', '샘플 회사', '팀장'],
+        ['김철수', 'kim@example.com', '샘플 회사', '대리']
+      ];
+      
+      const ws = XLSX.utils.aoa_to_sheet(template);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Participants');
+      XLSX.writeFile(wb, 'participants_template.xlsx');
+    }
+
+    // 참여 코드 발송
+    async function sendCode(code, email) {
+      // 이메일 발송 로직 (EmailJS 등 사용)
+      try {
+        const diagnosisLink = `${window.location.origin}/진단지.html?code=${code}`;
+        
+        // 여기에 실제 이메일 발송 로직 추가
+        // EmailJS나 다른 이메일 서비스 사용
+        
+        alert(`참여 코드가 ${email}로 발송되었습니다.\n진단 링크: ${diagnosisLink}`);
+      } catch (error) {
+        showErrorMessage('이메일 발송 중 오류가 발생했습니다: ' + error.message);
+      }
+    }
+
+    // 진단 링크 복사
+    function copyDiagnosisLink(code) {
+      const link = `${window.location.origin}/진단지.html?code=${code}`;
+      copyToClipboard(link);
+      showSuccessMessage('진단 링크가 클립보드에 복사되었습니다.');
+    }
+
+    // 클립보드 복사
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        showSuccessMessage('클립보드에 복사되었습니다.');
+      }).catch(() => {
+        showErrorMessage('복사에 실패했습니다.');
+      });
+    }
+
+    // 참여자 삭제
+    async function deleteParticipant(code) {
+      if (!confirm('정말로 이 참여자를 삭제하시겠습니까?')) return;
+      
+      try {
+        if (isUserSignedIn()) {
+          // Google Sheets에서 삭제 로직 (실제로는 상태 변경)
+          await updateParticipantStatus(code, 'deleted');
+        } else {
+          // localStorage에서 삭제
+          const localParticipants = JSON.parse(localStorage.getItem('participants') || '[]');
+          const filteredParticipants = localParticipants.filter(p => p.code !== code);
+          localStorage.setItem('participants', JSON.stringify(filteredParticipants));
+        }
+        
+        showSuccessMessage('참여자가 삭제되었습니다.');
+        refreshParticipants();
+      } catch (error) {
+        showErrorMessage('참여자 삭제 중 오류가 발생했습니다: ' + error.message);
+      }
+    }
+
+    // 검색 기능
+    function setupSearch() {
+      const searchInput = document.getElementById('searchInput');
+      searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        const filteredParticipants = participants.filter(p => 
+          p.name.toLowerCase().includes(searchTerm) || 
+          p.email.toLowerCase().includes(searchTerm)
+        );
+        renderParticipantsTable(filteredParticipants);
+      });
+    }
+
+    // 탭 설정
+    function setupTabs() {
+      document.querySelectorAll('.tab-button').forEach(button => {
+        button.addEventListener('click', function() {
+          const tabName = this.onclick.toString().match(/showTab\('(.+?)'\)/)[1];
+          showTab(tabName);
+        });
+      });
+    }
+
+    function showTab(tabName) {
+      currentTab = tabName;
+      
+      // 탭 버튼 스타일 업데이트
+      document.querySelectorAll('.tab-button').forEach(button => {
+        button.classList.remove('active', 'border-blue-500', 'text-blue-600');
+        button.classList.add('border-transparent', 'text-gray-500');
+      });
+      
+      // 활성 탭 스타일
+      const activeButton = document.querySelector(`[onclick="showTab('${tabName}')"]`);
+      activeButton.classList.add('active', 'border-blue-500', 'text-blue-600');
+      activeButton.classList.remove('border-transparent', 'text-gray-500');
+      
+      // 탭 콘텐츠 표시/숨김
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.add('hidden');
+      });
+      
+      document.getElementById(`${tabName}Tab`).classList.remove('hidden');
+      
+      // 참여자 목록 탭이 선택되면 데이터 새로고침
+      if (tabName === 'manage') {
+        refreshParticipants();
+      }
+    }
+
+    // 파일 업로드 설정
+    function setupFileUpload() {
+      const dropArea = document.querySelector('.file-drop-area');
+      
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, preventDefaults, false);
+      });
+      
+      function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      
+      ['dragenter', 'dragover'].forEach(eventName => {
+        dropArea.addEventListener(eventName, highlight, false);
+      });
+      
+      ['dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, unhighlight, false);
+      });
+      
+      function highlight() {
+        dropArea.classList.add('dragover');
+      }
+      
+      function unhighlight() {
+        dropArea.classList.remove('dragover');
+      }
+      
+      dropArea.addEventListener('drop', handleDrop, false);
+      
+      function handleDrop(e) {
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+          document.getElementById('excelFile').files = files;
+          handleExcelUpload({ target: { files: files } });
+        }
+      }
+    }
+
+    // 모바일 메뉴 설정
+    function setupMobileMenu() {
+      const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+      const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('mobileOverlay');
+      const closeSidebar = document.getElementById('closeSidebar');
+
+      mobileMenuBtn.addEventListener('click', function() {
+        sidebar.classList.add('mobile-open');
+        overlay.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+      });
+
+      function closeMobileMenu() {
+        sidebar.classList.remove('mobile-open');
+        overlay.classList.add('hidden');
+        document.body.style.overflow = '';
+      }
+
+      closeSidebar.addEventListener('click', closeMobileMenu);
+      overlay.addEventListener('click', closeMobileMenu);
+    }
+
+    // 현재 시간 업데이트
+    function updateDateTime() {
+      const now = new Date();
+      const dateTimeString = now.toLocaleString('ko-KR');
+      const element = document.getElementById('currentDateTime');
+      if (element) {
+        element.textContent = dateTimeString;
+      }
+    }
+
+    // 성공 메시지 표시
+    function showSuccessMessage(message) {
+      showMessage(message, 'success');
+    }
+
+    // 오류 메시지 표시
+    function showErrorMessage(message) {
+      showMessage(message, 'error');
+    }
+
+    // 메시지 표시
+    function showMessage(message, type) {
+      const alertDiv = document.createElement('div');
+      alertDiv.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg ${
+        type === 'success' ? 'bg-green-100 border border-green-400 text-green-700' : 
+        'bg-red-100 border border-red-400 text-red-700'
+      }`;
+      alertDiv.innerHTML = `
+        <div class="flex items-center">
+          <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle'} mr-2"></i>
+          <span>${message}</span>
+        </div>
+      `;
+      
+      document.body.appendChild(alertDiv);
+      
+      setTimeout(() => {
+        alertDiv.remove();
+      }, 3000);
+    }
+
+    // 로그아웃
+    function logout() {
+      if (confirm('로그아웃 하시겠습니까?')) {
+        localStorage.removeItem('currentAdmin');
+        if (isUserSignedIn()) {
+          signOutUser();
+        }
+        window.location.href = 'index.html';
+      }
+    }
+  </script>
+</body>
+</html>
     .nav-item {
       transition: all 0.3s ease;
     }
@@ -23,7 +360,6 @@
       border-left: 4px solid #fff;
     }
     
-    /* 모바일 반응형 */
     @media (max-width: 768px) {
       .sidebar {
         transform: translateX(-100%);
@@ -41,7 +377,6 @@
       }
     }
     
-    /* 파일 드래그 앤 드롭 스타일 */
     .file-drop-area {
       border: 2px dashed #cbd5e0;
       border-radius: 0.5rem;
@@ -52,13 +387,11 @@
       background-color: #ebf8ff;
     }
     
-    /* 테이블 스타일 */
     .table-container {
       max-height: 400px;
       overflow-y: auto;
     }
     
-    /* 상태 배지 */
     .status-badge {
       display: inline-flex;
       align-items: center;
@@ -113,10 +446,6 @@
         <i class="fas fa-edit mr-3"></i>
         <span class="text-sm md:text-base">피드백 편집</span>
       </a>
-      <a href="admin-management.html" class="nav-item flex items-center px-4 md:px-6 py-3 text-gray-300 hover:text-white">
-        <i class="fas fa-user-cog mr-3"></i>
-        <span class="text-sm md:text-base">관리자 관리</span>
-      </a>
       <a href="#" class="nav-item flex items-center px-4 md:px-6 py-3 text-gray-300 hover:text-white" onclick="logout()">
         <i class="fas fa-sign-out-alt mr-3"></i>
         <span class="text-sm md:text-base">로그아웃</span>
@@ -138,6 +467,11 @@
           </div>
           <div class="flex items-center space-x-2 md:space-x-4">
             <div class="hidden md:block text-sm text-gray-600" id="currentDateTime"></div>
+            <button id="googleSignInBtn" onclick="handleGoogleSignIn()" 
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm">
+              <i class="fab fa-google mr-1"></i>
+              <span class="hidden md:inline">Google 연동</span>
+            </button>
             <button onclick="logout()" class="bg-red-600 hover:bg-red-700 text-white px-2 md:px-4 py-1 md:py-2 rounded-lg text-xs md:text-sm">
               <i class="fas fa-sign-out-alt mr-1"></i>
               <span class="hidden md:inline">로그아웃</span>
@@ -150,277 +484,129 @@
     <!-- Content -->
     <div class="p-4 md:p-6">
       
-      <!-- Success/Error Messages -->
-      <div id="successMessage" class="hidden bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
+      <!-- Google 연동 상태 알림 -->
+      <div id="googleStatusAlert" class="hidden mb-6 p-4 rounded-lg">
         <div class="flex items-center">
-          <i class="fas fa-check-circle mr-2"></i>
-          <span id="successText">작업이 성공적으로 완료되었습니다!</span>
-        </div>
-      </div>
-      
-      <div id="errorMessage" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-        <div class="flex items-center">
-          <i class="fas fa-exclamation-circle mr-2"></i>
-          <span id="errorText">오류가 발생했습니다.</span>
+          <i id="googleStatusIcon" class="mr-2"></i>
+          <span id="googleStatusText"></span>
         </div>
       </div>
 
-      <!-- 통계 카드 -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white rounded-lg p-4 shadow-sm">
-          <div class="flex items-center">
-            <div class="bg-blue-100 p-2 rounded-lg mr-3">
-              <i class="fas fa-users text-blue-600"></i>
-            </div>
-            <div>
-              <p class="text-sm text-gray-600">총 참여자</p>
-              <p class="text-xl font-semibold" id="totalParticipants">0</p>
-            </div>
-          </div>
-        </div>
-        
-        <div class="bg-white rounded-lg p-4 shadow-sm">
-          <div class="flex items-center">
-            <div class="bg-green-100 p-2 rounded-lg mr-3">
-              <i class="fas fa-check-circle text-green-600"></i>
-            </div>
-            <div>
-              <p class="text-sm text-gray-600">완료</p>
-              <p class="text-xl font-semibold" id="completedCount">0</p>
-            </div>
-          </div>
-        </div>
-        
-        <div class="bg-white rounded-lg p-4 shadow-sm">
-          <div class="flex items-center">
-            <div class="bg-yellow-100 p-2 rounded-lg mr-3">
-              <i class="fas fa-clock text-yellow-600"></i>
-            </div>
-            <div>
-              <p class="text-sm text-gray-600">대기 중</p>
-              <p class="text-xl font-semibold" id="pendingCount">0</p>
-            </div>
-          </div>
-        </div>
-        
-        <div class="bg-white rounded-lg p-4 shadow-sm">
-          <div class="flex items-center">
-            <div class="bg-red-100 p-2 rounded-lg mr-3">
-              <i class="fas fa-times-circle text-red-600"></i>
-            </div>
-            <div>
-              <p class="text-sm text-gray-600">만료</p>
-              <p class="text-xl font-semibold" id="expiredCount">0</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 참여자 추가 탭 -->
+      <!-- 탭 네비게이션 -->
       <div class="bg-white rounded-lg shadow-sm mb-6">
         <div class="border-b border-gray-200">
           <nav class="flex space-x-8 px-6">
-            <button class="tab-button active py-4 px-1 border-b-2 border-blue-500 font-medium text-sm text-blue-600" data-tab="individual">
+            <button onclick="showTab('individual')" 
+                    class="tab-button py-4 px-2 border-b-2 font-medium text-sm active">
               <i class="fas fa-user-plus mr-2"></i>개별 추가
             </button>
-            <button class="tab-button py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700" data-tab="bulk">
-              <i class="fas fa-file-upload mr-2"></i>엑셀 업로드
+            <button onclick="showTab('bulk')" 
+                    class="tab-button py-4 px-2 border-b-2 font-medium text-sm">
+              <i class="fas fa-file-excel mr-2"></i>일괄 업로드
+            </button>
+            <button onclick="showTab('manage')" 
+                    class="tab-button py-4 px-2 border-b-2 font-medium text-sm">
+              <i class="fas fa-list mr-2"></i>참여자 목록
             </button>
           </nav>
         </div>
-        
+
         <!-- 개별 추가 탭 -->
         <div id="individualTab" class="tab-content p-6">
-          <form id="addParticipantForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">
-                <i class="fas fa-user mr-1"></i>성명 *
-              </label>
-              <input type="text" id="participantName" required
-                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                     placeholder="참여자 성명을 입력하세요">
+          <h3 class="text-lg font-semibold mb-4">새 참여자 추가</h3>
+          
+          <form id="addParticipantForm" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">이름 *</label>
+                <input type="text" id="participantName" required
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">이메일 *</label>
+                <input type="email" id="participantEmail" required
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">소속</label>
+                <input type="text" id="participantOrg"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              </div>
+              
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">직책</label>
+                <input type="text" id="participantPosition"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              </div>
             </div>
             
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">
-                <i class="fas fa-envelope mr-1"></i>이메일 *
-              </label>
-              <input type="email" id="participantEmail" required
-                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                     placeholder="이메일 주소를 입력하세요">
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">
-                <i class="fas fa-building mr-1"></i>소속
-              </label>
-              <input type="text" id="participantOrganization"
-                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                     placeholder="소속 기관을 입력하세요">
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">
-                <i class="fas fa-briefcase mr-1"></i>직책
-              </label>
-              <input type="text" id="participantPosition"
-                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                     placeholder="직책을 입력하세요">
-            </div>
-            
-            <div class="md:col-span-2">
-              <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg">
+            <div class="flex justify-end">
+              <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg">
                 <i class="fas fa-plus mr-2"></i>참여자 추가
               </button>
             </div>
           </form>
         </div>
-        
-        <!-- 엑셀 업로드 탭 -->
-        <div id="bulkTab" class="tab-content hidden p-6">
-          <div class="space-y-4">
-            <!-- 템플릿 다운로드 -->
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div class="flex items-center justify-between">
-                <div>
-                  <h4 class="font-medium text-blue-800">엑셀 템플릿 다운로드</h4>
-                  <p class="text-sm text-blue-600 mt-1">참여자 정보를 일괄 등록하기 위한 엑셀 템플릿을 다운로드하세요.</p>
-                </div>
-                <button onclick="downloadTemplate()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm">
-                  <i class="fas fa-download mr-2"></i>템플릿 다운로드
-                </button>
-              </div>
-            </div>
-            
-            <!-- 파일 업로드 영역 -->
-            <div class="file-drop-area p-8 text-center" id="fileDropArea">
-              <div class="max-w-md mx-auto">
-                <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-4"></i>
-                <h3 class="text-lg font-medium text-gray-700 mb-2">엑셀 파일을 업로드하세요</h3>
-                <p class="text-sm text-gray-500 mb-4">파일을 드래그 앤 드롭하거나 클릭하여 선택하세요</p>
-                <input type="file" id="excelFileInput" accept=".xlsx,.xls" class="hidden">
-                <button onclick="document.getElementById('excelFileInput').click()" 
-                        class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm">
-                  <i class="fas fa-folder-open mr-2"></i>파일 선택
-                </button>
-              </div>
-            </div>
-            
-            <!-- 업로드 진행 상황 -->
-            <div id="uploadProgress" class="hidden">
-              <div class="bg-white border border-gray-200 rounded-lg p-4">
-                <div class="flex items-center justify-between mb-2">
-                  <span class="text-sm font-medium text-gray-700">업로드 진행 상황</span>
-                  <span class="text-sm text-gray-500" id="progressText">0%</span>
-                </div>
-                <div class="w-full bg-gray-200 rounded-full h-2">
-                  <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" id="progressBar" style="width: 0%"></div>
-                </div>
-              </div>
-            </div>
-            
-            <!-- 미리보기 테이블 -->
-            <div id="previewSection" class="hidden">
-              <h4 class="font-medium text-gray-800 mb-3">업로드 미리보기</h4>
-              <div class="bg-white border border-gray-200 rounded-lg">
-                <div class="table-container">
-                  <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                      <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">성명</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">이메일</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">소속</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">직책</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">상태</th>
-                      </tr>
-                    </thead>
-                    <tbody id="previewTableBody" class="bg-white divide-y divide-gray-200">
-                    </tbody>
-                  </table>
-                </div>
-                <div class="px-6 py-4 border-t border-gray-200">
-                  <div class="flex items-center justify-between">
-                    <div class="text-sm text-gray-600">
-                      <span id="validCount">0</span>개의 유효한 참여자, 
-                      <span id="invalidCount">0</span>개의 오류
-                    </div>
-                    <div class="space-x-2">
-                      <button onclick="cancelUpload()" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm">
-                        <i class="fas fa-times mr-2"></i>취소
-                      </button>
-                      <button onclick="confirmUpload()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm" id="confirmUploadBtn">
-                        <i class="fas fa-check mr-2"></i>확인 및 저장
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      <!-- 참여자 목록 -->
-      <div class="bg-white rounded-lg shadow-sm">
-        <div class="px-6 py-4 border-b border-gray-200">
-          <div class="flex items-center justify-between">
-            <h3 class="text-lg font-medium text-gray-800">참여자 목록</h3>
-            <div class="flex items-center space-x-2">
-              <!-- 검색 -->
-              <div class="relative">
-                <input type="text" id="searchInput" placeholder="검색..."
-                       class="pl-8 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                <i class="fas fa-search absolute left-2.5 top-2.5 text-gray-400 text-sm"></i>
-              </div>
-              
-              <!-- 필터 -->
-              <select id="statusFilter" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                <option value="">전체 상태</option>
-                <option value="pending">대기 중</option>
-                <option value="completed">완료</option>
-                <option value="expired">만료</option>
-              </select>
-              
-              <!-- 내보내기 -->
-              <button onclick="exportParticipants()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm">
-                <i class="fas fa-download mr-1"></i>내보내기
+        <!-- 일괄 업로드 탭 -->
+        <div id="bulkTab" class="tab-content p-6 hidden">
+          <h3 class="text-lg font-semibold mb-4">엑셀 파일 업로드</h3>
+          
+          <div class="mb-4">
+            <button onclick="downloadTemplate()" 
+                    class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm">
+              <i class="fas fa-download mr-2"></i>템플릿 다운로드
+            </button>
+          </div>
+          
+          <div class="file-drop-area p-8 text-center">
+            <input type="file" id="excelFile" accept=".xlsx,.xls" class="hidden">
+            <i class="fas fa-cloud-upload-alt text-4xl text-gray-400 mb-4"></i>
+            <p class="text-gray-600 mb-2">엑셀 파일을 여기에 드래그하거나</p>
+            <button onclick="document.getElementById('excelFile').click()" 
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+              파일 선택
+            </button>
+          </div>
+          
+          <div id="uploadResult" class="mt-4 hidden"></div>
+        </div>
+
+        <!-- 참여자 목록 탭 -->
+        <div id="manageTab" class="tab-content p-6 hidden">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-semibold">참여자 목록</h3>
+            <div class="flex space-x-2">
+              <input type="text" id="searchInput" placeholder="이름, 이메일로 검색..."
+                     class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+              <button onclick="refreshParticipants()" class="bg-gray-500 hover:bg-gray-600 text-white px-3 py-2 rounded-lg text-sm">
+                <i class="fas fa-sync-alt"></i>
               </button>
             </div>
           </div>
-        </div>
-        
-        <div class="table-container">
-          <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50 sticky top-0">
-              <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <input type="checkbox" id="selectAll" class="rounded border-gray-300">
-                </th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">성명</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">이메일</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">소속</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">직책</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">상태</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">등록일</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">액션</th>
-              </tr>
-            </thead>
-            <tbody id="participantsTableBody" class="bg-white divide-y divide-gray-200">
-              <!-- 참여자 데이터가 여기에 표시됩니다 -->
-            </tbody>
-          </table>
-        </div>
-        
-        <!-- 대량 작업 버튼 -->
-        <div id="bulkActions" class="hidden px-6 py-4 border-t border-gray-200 bg-gray-50">
-          <div class="flex items-center space-x-2">
-            <span class="text-sm text-gray-600"><span id="selectedCount">0</span>개 선택됨</span>
-            <button onclick="bulkSendInvites()" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm">
-              <i class="fas fa-envelope mr-1"></i>초대 발송
-            </button>
-            <button onclick="bulkDelete()" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded text-sm">
-              <i class="fas fa-trash mr-1"></i>삭제
-            </button>
+          
+          <div class="table-container">
+            <table class="min-w-full bg-white border border-gray-200">
+              <thead class="bg-gray-50 sticky top-0">
+                <tr>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">이름</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">이메일</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">소속</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">참여코드</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">상태</th>
+                  <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">작업</th>
+                </tr>
+              </thead>
+              <tbody id="participantsTableBody" class="divide-y divide-gray-200">
+                <tr>
+                  <td colspan="6" class="px-4 py-8 text-center text-gray-500">
+                    <i class="fas fa-spinner fa-spin mr-2"></i>데이터를 불러오는 중...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -430,704 +616,135 @@
   <script>
     // 전역 변수
     let currentAdmin = null;
+    let currentTab = 'individual';
     let participants = [];
-    let filteredParticipants = [];
-    let selectedParticipants = [];
-    let uploadedData = [];
 
     // 페이지 초기화
-    document.addEventListener('DOMContentLoaded', function() {
-      console.log('참여자 관리 페이지 초기화...');
-      
-      // 인증 확인
+    document.addEventListener('DOMContentLoaded', async function() {
       checkAuth();
-      
-      // 기본 초기화
       updateDateTime();
       setInterval(updateDateTime, 60000);
       setupMobileMenu();
       setupTabs();
-      setupFileUpload(); 
+      setupFileUpload();
       setupSearch();
       
-      // 데이터 로드
-      loadParticipants();
-      updateStatistics();
-      
-      // 폼 이벤트 등록
-      document.getElementById('addParticipantForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        addParticipant();
-      });
+      // Google API 초기화 시도
+      try {
+        await initializeGoogleAPI();
+        updateGoogleStatus(true, 'Google Sheets와 연결되었습니다.');
+        refreshParticipants();
+      } catch (error) {
+        updateGoogleStatus(false, 'Google 연동이 필요합니다. 연동 버튼을 클릭하세요.');
+      }
     });
 
-    // 인증 확인 함수
+    // 인증 체크
     function checkAuth() {
-      const savedAdmin = localStorage.getItem('currentAdmin');
-      if (!savedAdmin) {
-        alert('로그인이 필요합니다.');
+      const adminData = localStorage.getItem('currentAdmin');
+      if (!adminData) {
         window.location.href = 'index.html';
         return false;
       }
       
+      currentAdmin = JSON.parse(adminData);
+      document.getElementById('adminWelcome').textContent = `${currentAdmin.name}님 환영합니다`;
+      return true;
+    }
+
+    // Google 로그인 처리
+    async function handleGoogleSignIn() {
       try {
-        const admin = JSON.parse(savedAdmin);
-        currentAdmin = admin;
-        document.getElementById('adminWelcome').textContent = `${admin.name}님 환영합니다`;
-        return true;
+        await initializeGoogleAPI();
+        if (!isUserSignedIn()) {
+          await signInUser();
+        }
+        updateGoogleStatus(true, 'Google 계정에 연결되었습니다.');
+        refreshParticipants();
       } catch (error) {
-        console.error('인증 정보 오류:', error);
-        window.location.href = 'index.html';
-        return false;
+        updateGoogleStatus(false, 'Google 연동에 실패했습니다: ' + error.message);
       }
     }
 
-    // 모바일 메뉴 설정
-    function setupMobileMenu() {
-      const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-      const sidebar = document.getElementById('sidebar');
-      const overlay = document.getElementById('mobileOverlay');
-      const closeSidebar = document.getElementById('closeSidebar');
-
-      if (mobileMenuBtn) {
-        mobileMenuBtn.addEventListener('click', function() {
-          sidebar.classList.add('mobile-open');
-          overlay.classList.remove('hidden');
-          document.body.style.overflow = 'hidden';
-        });
-      }
-
-      function closeMobileMenu() {
-        sidebar.classList.remove('mobile-open');
-        overlay.classList.add('hidden');
-        document.body.style.overflow = '';
-      }
-
-      if (closeSidebar) closeSidebar.addEventListener('click', closeMobileMenu);
-      if (overlay) overlay.addEventListener('click', closeMobileMenu);
-    }
-
-    // 탭 설정
-    function setupTabs() {
-      const tabButtons = document.querySelectorAll('.tab-button');
-      const tabContents = document.querySelectorAll('.tab-content');
-
-      tabButtons.forEach(button => {
-        button.addEventListener('click', function() {
-          const tabId = this.dataset.tab;
-          
-          // 모든 탭 버튼에서 active 클래스 제거
-          tabButtons.forEach(btn => {
-            btn.classList.remove('active', 'border-blue-500', 'text-blue-600');
-            btn.classList.add('border-transparent', 'text-gray-500');
-          });
-          
-          // 모든 탭 컨텐츠 숨기기
-          tabContents.forEach(content => {
-            content.classList.add('hidden');
-          });
-          
-          // 선택된 탭 활성화
-          this.classList.add('active', 'border-blue-500', 'text-blue-600');
-          this.classList.remove('border-transparent', 'text-gray-500');
-          
-          document.getElementById(tabId + 'Tab').classList.remove('hidden');
-        });
-      });
-    }
-
-    // 파일 업로드 설정
-    function setupFileUpload() {
-      const fileDropArea = document.getElementById('fileDropArea');
-      const fileInput = document.getElementById('excelFileInput');
-
-      if (fileDropArea) {
-        // 드래그 앤 드롭 이벤트
-        fileDropArea.addEventListener('dragover', function(e) {
-          e.preventDefault();
-          this.classList.add('dragover');
-        });
-
-        fileDropArea.addEventListener('dragleave', function(e) {
-          e.preventDefault();
-          this.classList.remove('dragover');
-        });
-
-        fileDropArea.addEventListener('drop', function(e) {
-          e.preventDefault();
-          this.classList.remove('dragover');
-          const files = e.dataTransfer.files;
-          if (files.length > 0) {
-            handleFileUpload(files[0]);
-          }
-        });
-      }
-
-      if (fileInput) {
-        fileInput.addEventListener('change', function(e) {
-          if (e.target.files.length > 0) {
-            handleFileUpload(e.target.files[0]);
-          }
-        });
-      }
-    }
-
-    // 검색 설정
-    function setupSearch() {
-      const searchInput = document.getElementById('searchInput');
-      const statusFilter = document.getElementById('statusFilter');
-
-      if (searchInput) searchInput.addEventListener('input', filterParticipants);
-      if (statusFilter) statusFilter.addEventListener('change', filterParticipants);
-    }
-
-    // 현재 시간 업데이트
-    function updateDateTime() {
-      const now = new Date();
-      const dateTimeString = now.toLocaleString('ko-KR');
-      const element = document.getElementById('currentDateTime');
-      if (element) {
-        element.textContent = dateTimeString;
-      }
+    // Google 연동 상태 업데이트
+    function updateGoogleStatus(isConnected, message) {
+      const alert = document.getElementById('googleStatusAlert');
+      const icon = document.getElementById('googleStatusIcon');
+      const text = document.getElementById('googleStatusText');
+      const signInBtn = document.getElementById('googleSignInBtn');
+      
+      alert.className = `mb-6 p-4 rounded-lg ${isConnected ? 'bg-green-100 border border-green-400 text-green-700' : 'bg-yellow-100 border border-yellow-400 text-yellow-700'}`;
+      icon.className = `mr-2 fas ${isConnected ? 'fa-check-circle' : 'fa-exclamation-triangle'}`;
+      text.textContent = message;
+      alert.classList.remove('hidden');
+      
+      signInBtn.innerHTML = isConnected ? 
+        '<i class="fas fa-check mr-1"></i><span class="hidden md:inline">연동됨</span>' :
+        '<i class="fab fa-google mr-1"></i><span class="hidden md:inline">Google 연동</span>';
+      signInBtn.className = isConnected ? 
+        'bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm' :
+        'bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm';
     }
 
     // 참여자 추가
-    function addParticipant() {
-      const participant = {
-        id: generateId(),
-        name: document.getElementById('participantName').value,
-        email: document.getElementById('participantEmail').value,
-        organization: document.getElementById('participantOrganization').value,
-        position: document.getElementById('participantPosition').value,
-        status: 'pending',
-        registeredAt: new Date().toISOString(),
-        inviteSentAt: null,
-        completedAt: null,
-        uniqueCode: generateUniqueCode()
-      };
-
-      // 이메일 중복 체크
-      if (participants.find(p => p.email === participant.email)) {
-        showError('이미 등록된 이메일 주소입니다.');
-        return;
-      }
-
-      participants.push(participant);
-      saveParticipants();
-      renderParticipants();
-      updateStatistics();
-      
-      // 폼 초기화
-      document.getElementById('addParticipantForm').reset();
-      showSuccess('참여자가 성공적으로 추가되었습니다.');
-    }
-
-    // 엑셀 템플릿 다운로드
-    function downloadTemplate() {
-      const template = [
-        ['성명', '이메일', '소속', '직책'],
-        ['홍길동', 'hong@example.com', 'ABC회사', '팀장'],
-        ['김철수', 'kim@example.com', 'XYZ기관', '과장']
-      ];
-
-      const ws = XLSX.utils.aoa_to_sheet(template);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, '참여자목록');
-      
-      // 열 너비 설정
-      ws['!cols'] = [
-        { width: 15 },
-        { width: 25 },
-        { width: 20 },
-        { width: 15 }
-      ];
-
-      XLSX.writeFile(wb, '참여자_등록_템플릿.xlsx');
-      showSuccess('템플릿 파일이 다운로드되었습니다.');
-    }
-
-    // 파일 업로드 처리
-    function handleFileUpload(file) {
-      if (!file.name.match(/\.(xlsx|xls)$/)) {
-        showError('엑셀 파일만 업로드 가능합니다.');
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        try {
-          const data = new Uint8Array(e.target.result);
-          const workbook = XLSX.read(data, { type: 'array' });
-          const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-          
-          processExcelData(jsonData);
-        } catch (error) {
-          showError('파일을 읽는 중 오류가 발생했습니다: ' + error.message);
-        }
-      };
-      
-      reader.readAsArrayBuffer(file);
-    }
-
-    // 엑셀 데이터 처리
-    function processExcelData(data) {
-      if (data.length < 2) {
-        showError('데이터가 충분하지 않습니다.');
-        return;
-      }
-
-      const headers = data[0];
-      const rows = data.slice(1);
-      
-      uploadedData = [];
-      let validCount = 0;
-      let invalidCount = 0;
-
-      rows.forEach((row, index) => {
-        if (row.length === 0 || !row[0]) return; // 빈 행 스킵
-
+    async function addParticipant(participantData) {
+      try {
         const participant = {
-          rowIndex: index + 2,
-          name: row[0] || '',
-          email: row[1] || '',
-          organization: row[2] || '',
-          position: row[3] || '',
-          isValid: true,
-          errors: []
+          id: Date.now(),
+          name: participantData.name,
+          email: participantData.email,
+          organization: participantData.organization || '',
+          position: participantData.position || '',
+          code: generateParticipantCode(),
+          status: 'pending',
+          adminId: currentAdmin.id
         };
 
-        // 유효성 검사
-        if (!participant.name.trim()) {
-          participant.errors.push('성명이 필요합니다');
-          participant.isValid = false;
-        }
-
-        if (!participant.email.trim()) {
-          participant.errors.push('이메일이 필요합니다');
-          participant.isValid = false;
-        } else if (!isValidEmail(participant.email)) {
-          participant.errors.push('올바른 이메일 형식이 아닙니다');
-          participant.isValid = false;
-        } else if (participants.find(p => p.email === participant.email)) {
-          participant.errors.push('이미 등록된 이메일입니다');
-          participant.isValid = false;
-        }
-
-        uploadedData.push(participant);
-        
-        if (participant.isValid) {
-          validCount++;
+        if (isUserSignedIn()) {
+          // Google Sheets에 저장
+          await saveParticipant(participant);
         } else {
-          invalidCount++;
+          // localStorage에 임시 저장
+          const localParticipants = JSON.parse(localStorage.getItem('participants') || '[]');
+          localParticipants.push(participant);
+          localStorage.setItem('participants', JSON.stringify(localParticipants));
         }
-      });
 
-      // 미리보기 표시
-      displayUploadPreview(validCount, invalidCount);
-    }
-
-    // 업로드 미리보기 표시
-    function displayUploadPreview(validCount, invalidCount) {
-      const previewSection = document.getElementById('previewSection');
-      const previewTableBody = document.getElementById('previewTableBody');
-      const validCountElement = document.getElementById('validCount');
-      const invalidCountElement = document.getElementById('invalidCount');
-      const confirmBtn = document.getElementById('confirmUploadBtn');
-
-      previewSection.classList.remove('hidden');
-      validCountElement.textContent = validCount;
-      invalidCountElement.textContent = invalidCount;
-      
-      // 확인 버튼 활성화/비활성화
-      confirmBtn.disabled = validCount === 0;
-      if (validCount === 0) {
-        confirmBtn.classList.add('opacity-50', 'cursor-not-allowed');
-      } else {
-        confirmBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-      }
-
-      // 테이블 내용 생성
-      previewTableBody.innerHTML = '';
-      uploadedData.forEach(participant => {
-        const row = document.createElement('tr');
-        row.className = participant.isValid ? '' : 'bg-red-50';
+        showSuccessMessage('참여자가 성공적으로 추가되었습니다.');
+        document.getElementById('addParticipantForm').reset();
+        refreshParticipants();
         
-        row.innerHTML = `
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${participant.name}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${participant.email}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${participant.organization}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${participant.position}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm">
-            ${participant.isValid 
-              ? '<span class="status-badge status-pending">유효</span>'
-              : `<span class="status-badge status-expired">오류</span>
-                 <div class="text-xs text-red-600 mt-1">${participant.errors.join(', ')}</div>`
-            }
-          </td>
-        `;
+        return participant;
+      } catch (error) {
+        showErrorMessage('참여자 추가 중 오류가 발생했습니다: ' + error.message);
+        throw error;
+      }
+    }
+
+    // 참여자 목록 새로고침
+    async function refreshParticipants() {
+      try {
+        if (isUserSignedIn()) {
+          participants = await getParticipants();
+        } else {
+          participants = JSON.parse(localStorage.getItem('participants') || '[]');
+        }
         
-        previewTableBody.appendChild(row);
-      });
-    }
-
-    // 업로드 확인
-    function confirmUpload() {
-      const validParticipants = uploadedData.filter(p => p.isValid);
-      
-      if (validParticipants.length === 0) {
-        showError('유효한 참여자가 없습니다.');
-        return;
+        renderParticipantsTable(participants);
+      } catch (error) {
+        showErrorMessage('참여자 목록을 불러오는 중 오류가 발생했습니다: ' + error.message);
+        renderParticipantsTable([]);
       }
-
-      // 진행률 표시
-      const progressSection = document.getElementById('uploadProgress');
-      const progressBar = document.getElementById('progressBar');
-      const progressText = document.getElementById('progressText');
-      
-      progressSection.classList.remove('hidden');
-      
-      let processed = 0;
-      const total = validParticipants.length;
-
-      validParticipants.forEach((participantData, index) => {
-        setTimeout(() => {
-          const participant = {
-            id: generateId(),
-            name: participantData.name.trim(),
-            email: participantData.email.trim(),
-            organization: participantData.organization.trim(),
-            position: participantData.position.trim(),
-            status: 'pending',
-            registeredAt: new Date().toISOString(),
-            inviteSentAt: null,
-            completedAt: null,
-            uniqueCode: generateUniqueCode()
-          };
-
-          participants.push(participant);
-          processed++;
-          
-          // 진행률 업데이트
-          const progress = Math.round((processed / total) * 100);
-          progressBar.style.width = progress + '%';
-          progressText.textContent = progress + '%';
-          
-          // 완료 처리
-          if (processed === total) {
-            setTimeout(() => {
-              saveParticipants();
-              renderParticipants();
-              updateStatistics();
-              cancelUpload();
-              showSuccess(`${total}명의 참여자가 성공적으로 등록되었습니다.`);
-            }, 500);
-          }
-        }, index * 100); // 0.1초씩 지연
-      });
     }
 
-    // 업로드 취소
-    function cancelUpload() {
-      document.getElementById('previewSection').classList.add('hidden');
-      document.getElementById('uploadProgress').classList.add('hidden');
-      document.getElementById('excelFileInput').value = '';
-      uploadedData = [];
-    }
-
-    // 참여자 목록 로드
-    function loadParticipants() {
-      const saved = localStorage.getItem('participants');
-      if (saved) {
-        participants = JSON.parse(saved);
-      }
-      renderParticipants();
-    }
-
-    // 참여자 목록 저장
-    function saveParticipants() {
-      localStorage.setItem('participants', JSON.stringify(participants));
-    }
-
-    // 참여자 목록 렌더링
-    function renderParticipants() {
+    // 참여자 테이블 렌더링
+    function renderParticipantsTable(participantList) {
       const tbody = document.getElementById('participantsTableBody');
-      const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-      const statusFilter = document.getElementById('statusFilter').value;
       
-      // 필터링
-      filteredParticipants = participants.filter(participant => {
-        const matchesSearch = !searchTerm || 
-          participant.name.toLowerCase().includes(searchTerm) ||
-          participant.email.toLowerCase().includes(searchTerm) ||
-          (participant.organization && participant.organization.toLowerCase().includes(searchTerm));
-        
-        const matchesStatus = !statusFilter || participant.status === statusFilter;
-        
-        return matchesSearch && matchesStatus;
-      });
-
-      tbody.innerHTML = '';
-      
-      if (filteredParticipants.length === 0) {
+      if (participantList.length === 0) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="8" class="px-6 py-8 text-center text-gray-500">
-              <i class="fas fa-users text-4xl mb-2"></i>
-              <div>등록된 참여자가 없습니다.</div>
+            <td colspan="6" class="px-4 py-8 text-center text-gray-500">
+              <i class="fas fa-users mr-2"></i>등록된 참여자가 없습니다.
             </td>
-          </tr>
-        `;
-        return;
-      }
-
-      filteredParticipants.forEach(participant => {
-        const row = document.createElement('tr');
-        row.className = 'hover:bg-gray-50';
-        
-        const statusClass = {
-          pending: 'status-pending',
-          completed: 'status-completed',
-          expired: 'status-expired'
-        }[participant.status] || 'status-pending';
-        
-        const statusText = {
-          pending: '대기 중',
-          completed: '완료',
-          expired: '만료'
-        }[participant.status] || '대기 중';
-
-        row.innerHTML = `
-          <td class="px-6 py-4 whitespace-nowrap">
-            <input type="checkbox" class="participant-checkbox rounded border-gray-300" 
-                   value="${participant.id}" onchange="updateBulkActions()">
-          </td>
-          <td class="px-6 py-4 whitespace-nowrap">
-            <div class="text-sm font-medium text-gray-900">${participant.name}</div>
-          </td>
-          <td class="px-6 py-4 whitespace-nowrap">
-            <div class="text-sm text-gray-900">${participant.email}</div>
-          </td>
-          <td class="px-6 py-4 whitespace-nowrap">
-            <div class="text-sm text-gray-900">${participant.organization || '-'}</div>
-          </td>
-          <td class="px-6 py-4 whitespace-nowrap">
-            <div class="text-sm text-gray-900">${participant.position || '-'}</div>
-          </td>
-          <td class="px-6 py-4 whitespace-nowrap">
-            <span class="status-badge ${statusClass}">${statusText}</span>
-          </td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-            ${new Date(participant.registeredAt).toLocaleDateString('ko-KR')}
-          </td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-            <button onclick="sendInviteToParticipant('${participant.id}')" 
-                    class="text-green-600 hover:text-green-900 mr-2">
-              <i class="fas fa-envelope"></i>
-            </button>
-            <button onclick="deleteParticipantById('${participant.id}')" 
-                    class="text-red-600 hover:text-red-900">
-              <i class="fas fa-trash"></i>
-            </button>
-          </td>
-        `;
-        
-        tbody.appendChild(row);
-      });
-    }
-
-    // 참여자 필터링
-    function filterParticipants() {
-      renderParticipants();
-    }
-
-    // 통계 업데이트
-    function updateStatistics() {
-      const total = participants.length;
-      const completed = participants.filter(p => p.status === 'completed').length;
-      const pending = participants.filter(p => p.status === 'pending').length;
-      const expired = participants.filter(p => p.status === 'expired').length;
-
-      document.getElementById('totalParticipants').textContent = total;
-      document.getElementById('completedCount').textContent = completed;
-      document.getElementById('pendingCount').textContent = pending;
-      document.getElementById('expiredCount').textContent = expired;
-    }
-
-    // 대량 작업 업데이트
-    function updateBulkActions() {
-      const checkboxes = document.querySelectorAll('.participant-checkbox:checked');
-      const bulkActions = document.getElementById('bulkActions');
-      const selectedCount = document.getElementById('selectedCount');
-      
-      selectedParticipants = Array.from(checkboxes).map(cb => cb.value);
-      selectedCount.textContent = selectedParticipants.length;
-      
-      if (selectedParticipants.length > 0) {
-        bulkActions.classList.remove('hidden');
-      } else {
-        bulkActions.classList.add('hidden');
-      }
-    }
-
-    // 전체 선택
-    document.getElementById('selectAll').addEventListener('change', function() {
-      const checkboxes = document.querySelectorAll('.participant-checkbox');
-      checkboxes.forEach(cb => {
-        cb.checked = this.checked;
-      });
-      updateBulkActions();
-    });
-
-    // 초대 발송
-    function sendInviteToParticipant(id) {
-      const participant = participants.find(p => p.id === id);
-      if (!participant) return;
-
-      // 실제 이메일 발송 로직 구현
-      console.log(`초대 발송: ${participant.email}`);
-      
-      // 발송 시간 기록
-      participant.inviteSentAt = new Date().toISOString();
-      saveParticipants();
-      renderParticipants();
-      
-      showSuccess(`${participant.name}님에게 초대가 발송되었습니다.`);
-    }
-
-    // 참여자 삭제
-    function deleteParticipantById(id) {
-      if (!confirm('정말로 이 참여자를 삭제하시겠습니까?')) return;
-      
-      participants = participants.filter(p => p.id !== id);
-      saveParticipants();
-      renderParticipants();
-      updateStatistics();
-      
-      showSuccess('참여자가 삭제되었습니다.');
-    }
-
-    // 대량 초대 발송
-    function bulkSendInvites() {
-      if (selectedParticipants.length === 0) return;
-      
-      if (!confirm(`선택된 ${selectedParticipants.length}명에게 초대를 발송하시겠습니까?`)) return;
-      
-      selectedParticipants.forEach(id => {
-        const participant = participants.find(p => p.id === id);
-        if (participant) {
-          participant.inviteSentAt = new Date().toISOString();
-        }
-      });
-      
-      saveParticipants();
-      renderParticipants();
-      updateBulkActions();
-      
-      showSuccess(`${selectedParticipants.length}명에게 초대가 발송되었습니다.`);
-    }
-
-    // 대량 삭제
-    function bulkDelete() {
-      if (selectedParticipants.length === 0) return;
-      
-      if (!confirm(`선택된 ${selectedParticipants.length}명을 삭제하시겠습니까?`)) return;
-      
-      participants = participants.filter(p => !selectedParticipants.includes(p.id));
-      selectedParticipants = [];
-      
-      saveParticipants();
-      renderParticipants();
-      updateStatistics();
-      updateBulkActions();
-      
-      showSuccess('선택된 참여자들이 삭제되었습니다.');
-    }
-
-    // 참여자 목록 내보내기
-    function exportParticipants() {
-      if (participants.length === 0) {
-        showError('내보낼 데이터가 없습니다.');
-        return;
-      }
-
-      const exportData = [
-        ['성명', '이메일', '소속', '직책', '상태', '등록일', '초대발송일', '완료일']
-      ];
-
-      participants.forEach(participant => {
-        exportData.push([
-          participant.name,
-          participant.email,
-          participant.organization || '',
-          participant.position || '',
-          getStatusText(participant.status),
-          new Date(participant.registeredAt).toLocaleDateString('ko-KR'),
-          participant.inviteSentAt ? new Date(participant.inviteSentAt).toLocaleDateString('ko-KR') : '',
-          participant.completedAt ? new Date(participant.completedAt).toLocaleDateString('ko-KR') : ''
-        ]);
-      });
-
-      const ws = XLSX.utils.aoa_to_sheet(exportData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, '참여자목록');
-      
-      const today = new Date().toISOString().split('T')[0];
-      XLSX.writeFile(wb, `참여자목록_${today}.xlsx`);
-      
-      showSuccess('참여자 목록이 내보내기되었습니다.');
-    }
-
-    // 유틸리티 함수들
-    function generateId() {
-      return Date.now().toString(36) + Math.random().toString(36).substr(2);
-    }
-
-    function generateUniqueCode() {
-      return Math.random().toString(36).substr(2, 8).toUpperCase();
-    }
-
-    function isValidEmail(email) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      return emailRegex.test(email);
-    }
-
-    function getStatusText(status) {
-      const statusMap = {
-        pending: '대기 중',
-        completed: '완료',
-        expired: '만료'
-      };
-      return statusMap[status] || '대기 중';
-    }
-
-    function showSuccess(message) {
-      const element = document.getElementById('successMessage');
-      const textElement = document.getElementById('successText');
-      textElement.textContent = message;
-      element.classList.remove('hidden');
-      setTimeout(() => {
-        element.classList.add('hidden');
-      }, 3000);
-    }
-
-    function showError(message) {
-      const element = document.getElementById('errorMessage');
-      const textElement = document.getElementById('errorText');
-      textElement.textContent = message;
-      element.classList.remove('hidden');
-      setTimeout(() => {
-        element.classList.add('hidden');
-      }, 3000);
-    }
-
-    // 로그아웃
-    function logout() {
-      if (confirm('로그아웃 하시겠습니까?')) {
-        localStorage.removeItem('currentAdmin');
-        window.location.href = 'index.html';
-      }
-    }
-  </script>
-</body>
-</html>
+          </tr
