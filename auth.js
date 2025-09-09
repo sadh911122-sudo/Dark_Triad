@@ -14,10 +14,43 @@ window.AdminAuth = {
   lastActivity: Date.now(),
   
   /**
+   * 🆕 기본 관리자 계정 자동 생성
+   */
+  initializeDefaultAccount: function() {
+    const adminAccounts = JSON.parse(localStorage.getItem('adminAccounts') || '[]');
+    
+    // 계정이 하나도 없으면 기본 계정 생성
+    if (adminAccounts.length === 0) {
+      console.log('🔧 기본 관리자 계정을 생성합니다...');
+      
+      const defaultAccount = {
+        id: 'admin',
+        password: '1234',
+        name: '시스템 관리자',
+        email: 'admin@system.com',
+        role: 'super_admin',
+        status: 'active',
+        createdAt: new Date().toISOString(),
+        lastLogin: null,
+        loginCount: 0
+      };
+      
+      adminAccounts.push(defaultAccount);
+      localStorage.setItem('adminAccounts', JSON.stringify(adminAccounts));
+      
+      console.log('✅ 기본 계정 생성 완료: admin/1234');
+      console.log('📝 로그인 후 비밀번호를 변경하세요.');
+    }
+  },
+  
+  /**
    * 인증 상태 확인
    * @returns {Object|null} 관리자 정보 또는 null
    */
   checkAuth: function() {
+    // 🆕 기본 계정 초기화 (첫 실행 시)
+    this.initializeDefaultAccount();
+    
     const savedAdmin = localStorage.getItem('currentAdmin');
     if (!savedAdmin) {
       this.redirectToLogin('로그인이 필요합니다.');
@@ -48,6 +81,47 @@ window.AdminAuth = {
       console.error('인증 정보 파싱 오류:', error);
       this.redirectToLogin('인증 정보가 손상되었습니다.');
       return null;
+    }
+  },
+  
+  /**
+   * 🆕 로그인 처리 함수
+   */
+  login: function(username, password) {
+    // 기본 계정 초기화
+    this.initializeDefaultAccount();
+    
+    const adminAccounts = JSON.parse(localStorage.getItem('adminAccounts') || '[]');
+    const account = adminAccounts.find(acc => 
+      acc.id === username && 
+      acc.password === password && 
+      acc.status === 'active'
+    );
+
+    if (account) {
+      // 로그인 성공
+      const loginInfo = {
+        id: account.id,
+        name: account.name,
+        email: account.email,
+        role: account.role,
+        loginTime: new Date().toISOString()
+      };
+
+      // 세션 저장
+      localStorage.setItem('currentAdmin', JSON.stringify(loginInfo));
+      
+      // 로그인 통계 업데이트
+      account.lastLogin = new Date().toISOString();
+      account.loginCount = (account.loginCount || 0) + 1;
+      localStorage.setItem('adminAccounts', JSON.stringify(adminAccounts));
+
+      // 비활성화 타이머 시작
+      this.startInactivityTimer();
+
+      return { success: true, admin: loginInfo };
+    } else {
+      return { success: false, message: '아이디 또는 비밀번호가 잘못되었습니다.' };
     }
   },
   
@@ -245,6 +319,9 @@ window.AdminAuth = {
    * 초기화 함수 (각 페이지에서 호출)
    */
   init: function() {
+    // 🆕 기본 계정 초기화
+    this.initializeDefaultAccount();
+    
     // 인증 확인
     const admin = this.checkAuth();
     if (!admin) return false;
@@ -296,4 +373,5 @@ window.addEventListener('error', function(e) {
 if (typeof console !== 'undefined') {
   console.log('AdminAuth 시스템이 로드되었습니다.');
   console.log('세션 정보 확인: AdminAuth.getSessionInfo()');
+  console.log('기본 계정: admin/1234 (첫 실행 시 자동 생성)');
 }
