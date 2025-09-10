@@ -2,7 +2,7 @@
 console.log('config.js 파일 실행 시작');
 
 // Google Apps Script 웹앱 URL (배포 후 여기에 입력)
-window.GAS_WEB_APP_URL = 'YOUR_DEPLOYED_WEB_APP_URL_HERE';
+window.GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzLlW0yE97GYxzFc-2UdSlUgNt5KY36o920ISVvZGPynmvK7TLY3V_e3q_IY_E6ITU/exec';
 
 // 전역 스코프에 GOOGLE_CONFIG 선언
 window.GOOGLE_CONFIG = {
