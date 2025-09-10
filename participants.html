@@ -30,6 +30,8 @@
       }
     });
   </script>
+  
+  <style>
     body {
       font-family: 'Noto Sans KR', sans-serif;
     }
@@ -312,8 +314,6 @@
     let currentAdmin = null;
     let currentTab = 'individual';
     let participants = [];
-    let gapi_loaded = false;
-    let auth_initialized = false;
 
     // 페이지 초기화
     document.addEventListener('DOMContentLoaded', async function() {
@@ -326,10 +326,14 @@
       setupSearch();
       setupFormSubmission();
       
-      // Google API 초기화 시도
+      // Google API 초기화 시도 (config.js 함수 사용)
       try {
-        await initializeGoogleAPI();
-        updateGoogleStatus(true, 'Google Sheets와 연결되었습니다.');
+        if (typeof initializeGoogleAPI === 'function') {
+          await initializeGoogleAPI();
+          updateGoogleStatus(true, 'Google Sheets와 연결되었습니다.');
+        } else {
+          throw new Error('initializeGoogleAPI 함수를 찾을 수 없습니다.');
+        }
         refreshParticipants();
       } catch (error) {
         console.log('Google API 초기화 실패:', error);
@@ -358,77 +362,19 @@
       return true;
     }
 
-    // Google API 초기화
-    async function initializeGoogleAPI() {
-      return new Promise((resolve, reject) => {
-        if (typeof GOOGLE_CONFIG === 'undefined') {
-          reject(new Error('Google 설정이 로드되지 않았습니다.'));
-          return;
-        }
-
-        if (typeof gapi === 'undefined') {
-          const script = document.createElement('script');
-          script.src = 'https://apis.google.com/js/api.js';
-          script.onload = () => {
-            gapi.load('client:auth2', () => {
-              gapi.client.init({
-                clientId: GOOGLE_CONFIG.CLIENT_ID,
-                scope: GOOGLE_CONFIG.SCOPE,
-                discoveryDocs: [GOOGLE_CONFIG.DISCOVERY_DOC]
-              }).then(() => {
-                gapi_loaded = true;
-                auth_initialized = true;
-                resolve();
-              }).catch(reject);
-            });
-          };
-          script.onerror = () => reject(new Error('Google API 스크립트 로드 실패'));
-          document.head.appendChild(script);
-        } else {
-          if (!gapi_loaded) {
-            gapi.load('client:auth2', () => {
-              gapi.client.init({
-                clientId: GOOGLE_CONFIG.CLIENT_ID,
-                scope: GOOGLE_CONFIG.SCOPE,
-                discoveryDocs: [GOOGLE_CONFIG.DISCOVERY_DOC]
-              }).then(() => {
-                gapi_loaded = true;
-                auth_initialized = true;
-                resolve();
-              }).catch(reject);
-            });
-          } else {
-            resolve();
-          }
-        }
-      });
-    }
-
-    // 사용자 로그인 상태 확인
-    function isUserSignedIn() {
-      if (!auth_initialized || typeof gapi === 'undefined') return false;
-      return gapi.auth2.getAuthInstance().isSignedIn.get();
-    }
-
-    // 사용자 로그인
-    async function signInUser() {
-      if (!auth_initialized) throw new Error('Google API가 초기화되지 않았습니다.');
-      return await gapi.auth2.getAuthInstance().signIn();
-    }
-
-    // 사용자 로그아웃
-    async function signOutUser() {
-      if (!auth_initialized) return;
-      await gapi.auth2.getAuthInstance().signOut();
-    }
-
-    // Google 로그인 처리
+    // Google 로그인 처리 (config.js 함수 사용)
     async function handleGoogleSignIn() {
       try {
-        await initializeGoogleAPI();
-        if (!isUserSignedIn()) {
-          await signInUser();
+        if (typeof initializeGoogleAPI === 'function') {
+          await initializeGoogleAPI();
         }
+        
+        if (typeof isUserSignedIn === 'function' && typeof signInUser === 'function') {
+          if (!isUserSignedIn()) {
+            await signInUser();
+          }
+        }
+        
         updateGoogleStatus(true, 'Google 계정에 연결되었습니다.');
         refreshParticipants();
       } catch (error) {
@@ -544,7 +490,7 @@
       return prefix + randomNum;
     }
 
-    // 참여자 추가
+    // 참여자 추가 (config.js 함수 사용)
     async function addParticipant(participantData) {
       try {
         const participant = {
@@ -559,8 +505,8 @@
           createdAt: new Date().toISOString()
         };
 
-        if (isUserSignedIn()) {
-          // Google Sheets에 저장
+        // config.js의 함수 사용
+        if (typeof isUserSignedIn === 'function' && isUserSignedIn() && typeof saveParticipant === 'function') {
           await saveParticipant(participant);
         } else {
           // localStorage에 저장
@@ -580,79 +526,17 @@
       }
     }
 
-    // Google Sheets에 참여자 저장
-    async function saveParticipant(participant) {
-      try {
-        if (!isUserSignedIn()) {
-          throw new Error('Google 계정에 로그인이 필요합니다.');
-        }
-
-        const values = [[
-          participant.id,
-          participant.name,
-          participant.email,
-          participant.organization,
-          participant.position,
-          participant.code,
-          participant.status,
-          participant.adminId,
-          participant.createdAt
-        ]];
-
-        const response = await gapi.client.sheets.spreadsheets.values.append({
-          spreadsheetId: GOOGLE_CONFIG.SPREADSHEET_ID,
-          range: 'participants!A:I',
-          valueInputOption: 'RAW',
-          resource: {
-            values: values
-          }
-        });
-
-        return response;
-      } catch (error) {
-        console.error('Google Sheets 저장 오류:', error);
-        throw error;
-      }
-    }
-
-    // 참여자 목록 가져오기
-    async function getParticipants() {
-      try {
-        if (isUserSignedIn()) {
-          const response = await gapi.client.sheets.spreadsheets.values.get({
-            spreadsheetId: GOOGLE_CONFIG.SPREADSHEET_ID,
-            range: 'participants!A:I'
-          });
-
-          const values = response.result.values || [];
-          if (values.length > 1) {
-            return values.slice(1).map(row => ({
-              id: row[0],
-              name: row[1],
-              email: row[2],
-              organization: row[3],
-              position: row[4],
-              code: row[5],
-              status: row[6],
-              adminId: row[7],
-              createdAt: row[8]
-            }));
-          }
-        }
-        
-        // Google Sheets에서 불러오지 못했거나 로그인하지 않은 경우 로컬 데이터 사용
-        return JSON.parse(localStorage.getItem('participants') || '[]');
-      } catch (error) {
-        console.error('참여자 목록 로드 오류:', error);
-        // 오류 발생 시 로컬 데이터 사용
-        return JSON.parse(localStorage.getItem('participants') || '[]');
-      }
-    }
-
-    // 참여자 목록 새로고침
+    // 참여자 목록 새로고침 (config.js 함수 사용)
     async function refreshParticipants() {
       try {
-        participants = await getParticipants();
+        // config.js의 getParticipants 함수 사용
+        if (typeof getParticipants === 'function') {
+          participants = await getParticipants();
+        } else {
+          // fallback: localStorage 사용
+          participants = JSON.parse(localStorage.getItem('participants') || '[]');
+        }
+        
         renderParticipantsTable(participants);
       } catch (error) {
         showErrorMessage('참여자 목록을 불러오는 중 오류가 발생했습니다: ' + error.message);
@@ -829,38 +713,7 @@
       XLSX.writeFile(wb, 'participants_template.xlsx');
     }
 
-    // 참여코드 이메일 발송
-    async function sendParticipationCodeEmail(participant) {
-      try {
-        if (!isUserSignedIn()) {
-          throw new Error('이메일 발송을 위해 Google 계정 로그인이 필요합니다.');
-        }
-
-        // Gmail API를 사용한 이메일 발송 (실제 구현)
-        const subject = '리더십 진단 참여코드';
-        const body = `
-안녕하세요 ${participant.name}님,
-
-리더십 진단에 참여해 주셔서 감사합니다.
-아래 정보를 확인하시고 진단을 진행해 주세요.
-
-참여코드: ${participant.code}
-진단 링크: ${window.location.origin}/진단지.html?code=${participant.code}
-
-감사합니다.
-        `.trim();
-
-        // 실제 Gmail API 호출은 복잡하므로 시뮬레이션
-        console.log('이메일 발송:', { to: participant.email, subject, body });
-        
-        return { success: true };
-      } catch (error) {
-        console.error('이메일 발송 오류:', error);
-        throw error;
-      }
-    }
-
-    // 코드 발송
+    // 코드 발송 (config.js 함수 사용)
     async function sendCode(code, email) {
       try {
         const participant = participants.find(p => p.code === code);
@@ -868,16 +721,22 @@
           throw new Error('참여자를 찾을 수 없습니다.');
         }
         
-        await sendParticipationCodeEmail(participant);
+        // config.js의 sendParticipationCodeEmail 함수 사용
+        if (typeof sendParticipationCodeEmail === 'function') {
+          await sendParticipationCodeEmail(participant);
+        } else {
+          throw new Error('이메일 발송 기능을 사용할 수 없습니다.');
+        }
+        
         showMessage('참여코드가 성공적으로 발송되었습니다.', 'success');
       } catch (error) {
         showMessage('이메일 발송 중 오류가 발생했습니다: ' + error.message, 'error');
       }
     }
 
-    // 진단 링크 복사
+    // 진단 링크 복사 (경로 수정)
     function copyDiagnosisLink(code) {
-      const link = `${window.location.origin}/diagnosis.html?code=${code}`;
+      const link = `${window.location.origin}/Dark_Triad_admin/diagnosis.html?code=${code}`;
       copyToClipboard(link);
     }
 
@@ -890,52 +749,14 @@
       });
     }
 
-    // 참여자 상태 업데이트
-    async function updateParticipantStatus(code, status) {
-      try {
-        if (isUserSignedIn()) {
-          // Google Sheets에서 해당 참여자 찾아서 상태 업데이트
-          const response = await gapi.client.sheets.spreadsheets.values.get({
-            spreadsheetId: GOOGLE_CONFIG.SPREADSHEET_ID,
-            range: 'participants!A:I'
-          });
-
-          const values = response.result.values || [];
-          const rowIndex = values.findIndex(row => row[5] === code); // code는 6번째 컬럼 (index 5)
-          
-          if (rowIndex > 0) { // 헤더 제외
-            await gapi.client.sheets.spreadsheets.values.update({
-              spreadsheetId: GOOGLE_CONFIG.SPREADSHEET_ID,
-              range: `participants!G${rowIndex + 1}`, // status는 7번째 컬럼 (G)
-              valueInputOption: 'RAW',
-              resource: {
-                values: [[status]]
-              }
-            });
-          }
-        } else {
-          // localStorage 업데이트
-          const localParticipants = JSON.parse(localStorage.getItem('participants') || '[]');
-          const participantIndex = localParticipants.findIndex(p => p.code === code);
-          if (participantIndex !== -1) {
-            localParticipants[participantIndex].status = status;
-            localStorage.setItem('participants', JSON.stringify(localParticipants));
-          }
-        }
-      } catch (error) {
-        console.error('상태 업데이트 오류:', error);
-        throw error;
-      }
-    }
-
-    // 참여자 삭제
+    // 참여자 삭제 (config.js 함수 사용)
     async function deleteParticipant(code) {
       if (!confirm('정말로 이 참여자를 삭제하시겠습니까?')) return;
       
       try {
-        if (isUserSignedIn()) {
-          // Google Sheets에서는 실제 삭제 대신 상태 변경
-          await updateParticipantStatusLocal(code, 'deleted');
+        // config.js의 updateParticipantStatus 함수 사용
+        if (typeof isUserSignedIn === 'function' && isUserSignedIn() && typeof updateParticipantStatus === 'function') {
+          await updateParticipantStatus(code, 'deleted');
         } else {
           // localStorage에서 삭제
           const localParticipants = JSON.parse(localStorage.getItem('participants') || '[]');
@@ -1039,91 +860,64 @@
     function logout() {
       if (confirm('로그아웃 하시겠습니까?')) {
         localStorage.removeItem('currentAdmin');
-        if (isUserSignedIn()) {
+        if (typeof isUserSignedIn === 'function' && typeof signOutUser === 'function' && isUserSignedIn()) {
           signOutUser();
         }
         window.location.href = 'index.html';
       }
     }
 
-    // 테스트 데이터 생성 (개발용)
-    function generateTestData() {
-      const testParticipants = [
-        {
-          id: Date.now(),
-          name: '홍길동',
-          email: 'hong@example.com',
-          organization: '테스트 회사',
-          position: '팀장',
-          code: 'LDT-TEST01',
-          status: 'pending',
-          adminId: 'admin1',
-          createdAt: new Date().toISOString()
+    // 개발자 도구 (개발 환경에서만 사용)
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      window.devTools = {
+        generateTestData: () => {
+          const testParticipants = [
+            {
+              id: Date.now(),
+              name: '홍길동',
+              email: 'hong@example.com',
+              organization: '테스트 회사',
+              position: '팀장',
+              code: 'LDT-TEST01',
+              status: 'pending',
+              adminId: 'admin1',
+              createdAt: new Date().toISOString()
+            },
+            {
+              id: Date.now() + 1,
+              name: '김철수',
+              email: 'kim@example.com',
+              organization: '샘플 기업',
+              position: '대리',
+              code: 'LDT-TEST02',
+              status: 'completed',
+              adminId: 'admin1',
+              createdAt: new Date().toISOString()
+            }
+          ];
+          
+          const existingParticipants = JSON.parse(localStorage.getItem('participants') || '[]');
+          const allParticipants = [...existingParticipants, ...testParticipants];
+          localStorage.setItem('participants', JSON.stringify(allParticipants));
+          refreshParticipants();
+          showSuccessMessage('테스트 데이터가 생성되었습니다.');
         },
-        {
-          id: Date.now() + 1,
-          name: '김철수',
-          email: 'kim@example.com',
-          organization: '샘플 기업',
-          position: '대리',
-          code: 'LDT-TEST02',
-          status: 'completed',
-          adminId: 'admin1',
-          createdAt: new Date().toISOString()
+        clearData: () => {
+          localStorage.removeItem('participants');
+          refreshParticipants();
+          showSuccessMessage('모든 참여자 데이터가 삭제되었습니다.');
         },
-        {
-          id: Date.now() + 2,
-          name: '이영희',
-          email: 'lee@example.com',
-          organization: '혁신 스타트업',
-          position: '개발자',
-          code: 'LDT-TEST03',
-          status: 'pending',
-          adminId: 'admin1',
-          createdAt: new Date().toISOString()
+        viewData: () => {
+          console.log('현재 참여자 데이터:', JSON.parse(localStorage.getItem('participants') || '[]'));
         }
-      ];
+      };
       
-      const existingParticipants = JSON.parse(localStorage.getItem('participants') || '[]');
-      const allParticipants = [...existingParticipants, ...testParticipants];
-      localStorage.setItem('participants', JSON.stringify(allParticipants));
-      refreshParticipants();
-      showSuccessMessage('테스트 데이터가 생성되었습니다.');
+      console.log('개발 환경에서 devTools 사용 가능:', window.devTools);
     }
-
-    // 개발자 도구 (콘솔에서 사용)
-    window.devTools = {
-      generateTestData,
-      clearData: () => {
-        localStorage.removeItem('participants');
-        refreshParticipants();
-        showSuccessMessage('모든 참여자 데이터가 삭제되었습니다.');
-      },
-      viewData: () => {
-        console.log('현재 참여자 데이터:', JSON.parse(localStorage.getItem('participants') || '[]'));
-      },
-      exportData: () => {
-        const data = JSON.parse(localStorage.getItem('participants') || '[]');
-        const dataStr = JSON.stringify(data, null, 2);
-        const dataBlob = new Blob([dataStr], {type: 'application/json'});
-        const url = URL.createObjectURL(dataBlob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = 'participants_backup.json';
-        link.click();
-        URL.revokeObjectURL(url);
-        showSuccessMessage('데이터가 백업되었습니다.');
-      }
-    };
 
     // 페이지 로드 완료 후 추가 초기화
     window.addEventListener('load', function() {
       console.log('참여자 관리 페이지가 로드되었습니다.');
-      console.log('개발자 도구 사용법:');
-      console.log('- devTools.generateTestData(): 테스트 데이터 생성');
-      console.log('- devTools.viewData(): 현재 데이터 확인');
-      console.log('- devTools.clearData(): 모든 데이터 삭제');
-      console.log('- devTools.exportData(): 데이터 백업');
     });
   </script>
 </body>
