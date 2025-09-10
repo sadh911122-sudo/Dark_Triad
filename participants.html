@@ -379,7 +379,7 @@
         refreshParticipants();
       } catch (error) {
         console.error('Google 연동 오류:', error);
-        updateGoogleStatus(false, 'Google 연동에 실패했습니다: ' + error.message);
+        updateGoogleStatus(false, 'Google 연동에 실패했습니다: ' + (error?.message || JSON.stringify(error)));
       }
     }
 
