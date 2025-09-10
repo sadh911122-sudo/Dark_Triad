@@ -95,17 +95,21 @@ window.initializeGoogleAPI = async function() {
   }
 };
 
-// GAPI 로드 대기 함수
+// GAPI 로드 대기 함수 (개선됨)
 function waitForGapi() {
   return new Promise((resolve, reject) => {
     let attempts = 0;
-    const maxAttempts = 50;
+    const maxAttempts = 100; // 10초로 증가
     
     const checkGapi = () => {
       attempts++;
+      console.log(`GAPI 로드 확인 중... (${attempts}/${maxAttempts})`);
+      
       if (typeof gapi !== 'undefined') {
+        console.log('GAPI 로드 완료');
         resolve();
       } else if (attempts >= maxAttempts) {
+        console.error('GAPI 로드 타임아웃');
         reject(new Error('GAPI 로드 타임아웃'));
       } else {
         setTimeout(checkGapi, 100);
@@ -116,17 +120,21 @@ function waitForGapi() {
   });
 }
 
-// Google Identity Services 로드 대기 함수
+// Google Identity Services 로드 대기 함수 (개선됨)
 function waitForGIS() {
   return new Promise((resolve, reject) => {
     let attempts = 0;
-    const maxAttempts = 50;
+    const maxAttempts = 100; // 10초로 증가
     
     const checkGIS = () => {
       attempts++;
+      console.log(`GIS 로드 확인 중... (${attempts}/${maxAttempts})`);
+      
       if (typeof google !== 'undefined' && google.accounts && google.accounts.oauth2) {
+        console.log('Google Identity Services 로드 완료');
         resolve();
       } else if (attempts >= maxAttempts) {
+        console.error('Google Identity Services 로드 타임아웃');
         reject(new Error('Google Identity Services 로드 타임아웃'));
       } else {
         setTimeout(checkGIS, 100);
