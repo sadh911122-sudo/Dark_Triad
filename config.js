@@ -62,12 +62,13 @@ window.initializeGoogleAPI = async function() {
     gapi.load('client', async () => {
       try {
         await gapi.client.init({
-          discoveryDocs: [
-            window.GOOGLE_CONFIG.DISCOVERY_DOC, 
-            window.GOOGLE_CONFIG.GMAIL_DISCOVERY_DOC
-          ]
-        });
-        
+  clientId: window.GOOGLE_CONFIG.CLIENT_ID,
+  scope: window.GOOGLE_CONFIG.SCOPE,
+  discoveryDocs: [
+    window.GOOGLE_CONFIG.DISCOVERY_DOC, 
+    window.GOOGLE_CONFIG.GMAIL_DISCOVERY_DOC
+  ]
+});        
         window.gapi_loaded = true;
         window.auth_initialized = true;
         console.log('Google API 초기화 성공');
